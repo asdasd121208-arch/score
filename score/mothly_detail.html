@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>月間経営分析 - SCORE</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'DM Sans', sans-serif; background: #f4f7fb; color: #334155; margin: 0; padding: 10px; box-sizing: border-box; }
+      
+    /* ヘッダー*/
+    .header { height: 60px; background: linear-gradient(90deg, #071a3d, #0b2b63); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .back-btn { border: none; background: none; color: white; font-size: 16px; cursor: pointer; padding: 8px 4px; display: flex; align-items: center; }
+    
+    /* 検索条件・コントロールエリア */
+    .search-bar { background: white; padding: 12px 16px; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .select-group { display: flex; align-items: center; gap: 6px; }
+    .select-group label { font-size: 12px; color: #64748b; font-weight: bold; }
+    
+    select { height: 36px; border-radius: 6px; border: 1px solid #cbd5e1; padding: 0 24px 0 8px; font-size: 14px; background: #fff; appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2364748b'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 6px center; background-size: 16px; }
+    
+    .search-btn { height: 36px; background: #071a3d; color: white; border: none; border-radius: 6px; padding: 0 16px; font-weight: bold; cursor: pointer; font-size: 14px; }
+    .search-btn:hover { background: #0b2b63; }
+    
+    .status-area { width: 100%; font-size: 13px; font-weight: bold; color: #1e3a8a; margin-top: 4px; padding-left: 4px; }
+
+    /* カードとテーブル */
+    .card { background: white; border-radius: 12px; padding: 15px; margin-top: 15px; margin-bottom: 20px; margin-left: auto; margin-right: auto; box-shadow: 0 2px 4px rgba(0,0,0,0.05); overflow-x: auto; max-width: 1000px; }
+    .card h3 { margin: 0 0 15px 0; padding-left: 10px; border-left: 5px solid #0ea5e9; font-size: 1.1em; color: black; }
+    
+    .grid-kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px; }
+    .kpi-item { text-align: center; background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #f1f5f9; }
+    .kpi-label { font-size: 0.75em; color: #64748b; margin-bottom: 4px; font-weight: 600; }
+    .kpi-value { font-size: 0.95em; font-weight: bold; color: #071a3d; word-break: break-all; }
+    
+    table { width: 100%; max-width: 1000px; margin: 0 auto; border-collapse: collapse; font-size: 0.85em; }
+    th, td { padding: 10px 8px; border-bottom: 1px solid #e2e8f0; text-align: left; white-space: nowrap; }
+    th { color: #64748b; font-weight: 600; }
+    .text-right { text-align: right; }
+
+    @media (max-width: 480px) {
+        .search-bar button { width: 100%; }
+    }
+
+    /* --- FAB全体の固定配置 --- */
+    .simple-fab-container { position: fixed; bottom: 25px; right: 25px; z-index: 9999; display: flex; flex-direction: column; align-items: flex-end; font-family: sans-serif; }
+
+    /* メインの丸型トグルボタン (☰) */
+    .simple-fab-toggle { width: 50px; height: 50px; border: none; border-radius: 50%; background-color: #0d233a; color: #ffffff; font-size: 22px; cursor: pointer; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); display: flex; align-items: center; justify-content: center; outline: none; transition: background-color 0.2s, transform 0.1s; -webkit-tap-highlight-color: transparent; }
+    .simple-fab-toggle:active { transform: scale(0.92); }
+
+    /* 収納されるメニューのコンテナ（最初は非表示） */
+    .simple-fab-options { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; margin-bottom: 12px; opacity: 0; visibility: hidden; transform: translateY(10px); transition: all 0.2s ease; }
+
+    /* 開いたときのスタイル */
+    .simple-fab-options.open { opacity: 1; visibility: visible; transform: translateY(0); }
+
+    /* 文字だけのカプセル型リンクボタン */
+    .simple-fab-link { display: block; background-color: #ffffff; color: #333333 !important; text-decoration: none !important; padding: 10px 20px; border-radius: 22px; font-size: 13px; font-weight: bold; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2); border: 1px solid #e0e0e0; white-space: nowrap; text-align: center; transition: background-color 0.2s; -webkit-tap-highlight-color: transparent; }
+    .simple-fab-link:active { background-color: #f1f3f5; }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <button class="back-btn" onclick="goBackToDashboard()">⇦</button>
+    <div style="font-weight:bold; font-size: 15px;">月間サマリー</div>
+    <div style="width: 45px;"></div>
+  </header>
+
+  <div class="search-bar">
+    <div class="select-group">
+      <select id="storeSelector"></select>
+    </div>
+    <div class="select-group">
+      <input type="month" id="monthPicker" style="height:34px; border:1px solid #cbd5e1; border-radius:6px; padding:0 8px; font-family:inherit;">
+    </div>
+    <button class="search-btn" onclick="loadDashboardData()">検索</button>
+    <div id="statusLabel" class="status-area">表示中：-</div>
+  </div>
+
+  <div class="card">
+    <h3>月間収支サマリー</h3>
+    <div class="grid-kpi" id="financeKpi"></div>
+  </div>
+
+  <div class="card">
+    <h3>売上比率</h3>
+    <table id="ratioTable"></table>
+  </div>
+
+  <div class="card">
+    <h3>曜日別平均売上</h3>
+    <table id="dayAvgTable"></table>
+  </div>
+
+  <div class="card">
+    <h3>来客分析</h3>
+    <div class="grid-kpi" id="visitorKpi"></div>
+  </div>
+
+  <div class="card">
+    <h3>収益性分析</h3>
+    <div class="grid-kpi" id="profitabilityKpi"></div>
+  </div>
+
+  <div class="simple-fab-container">
+    <div class="simple-fab-options" id="fabMenuOptions">
+      <a href="monthly_detail.html" class="simple-fab-link">月間サマリー</a>
+      <a href="trend_analysis.html" class="simple-fab-link">チャート分析</a>
+      <a href="daily_list.html" class="simple-fab-link">デイリーリスト一覧</a>
+    </div>
+    <button class="simple-fab-toggle" id="fabToggleBtn" onclick="toggleFabMenu()">☰</button>
+  </div>
+
+  <script>
+    //  設定：公開したGASのWebアプリURLに書き換えてください
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycby5Y6TZVuzYS-H3PfDMaAOvwTi4XqNWM9xVtbp6Zoe9bFfGMQvH_4GLx7CSv-2NexysUg/exec";
+
+    // セッション情報の確認と取得
+    let empNo = sessionStorage.getItem('employeeNumber');
+    let userRole = "";
+
+    // セキュリティチェック
+    if (!empNo) {
+        alert("セッションが切れました。ログイン画面に戻ります。");
+        window.location.href = "login.html"; 
+    }
+
+    // 共通のAPI呼び出し関数
+    async function callGasApi(action, data = {}) {
+        try {
+            const response = await fetch(GAS_API_URL, {
+                method: "POST",
+                mode: "cors",
+                headers: { "Content-Type": "text/plain" },
+                body: JSON.stringify({ action, ...data })
+            });
+            if (!response.ok) throw new Error("ネットワークエラーが発生しました");
+            return await response.json();
+        } catch (error) {
+            console.error(`API通信エラー (${action}):`, error);
+            throw error;
+        }
+    }
+
+    window.onload = async () => {
+        // 今月を初期値としてセット ---
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        document.getElementById('monthPicker').value = `${year}-${month}`;
+
+        try {
+            // ユーザー権限チェック
+            userRole = await callGasApi("checkUserPermission", { empNo: empNo });
+            
+            // アクセス可能な店舗リスト取得
+            const stores = await callGasApi("getAccessibleStoreList", { empNo: empNo });
+            const selector = document.getElementById('storeSelector');
+            selector.innerHTML = stores.map(s => `<option value="${s}">${s}</option>`).join('');
+            
+            // 店舗リストが存在すればデータを初期読み込み
+            if (stores.length > 0) {
+                loadDashboardData(); 
+            } else {
+                document.getElementById('statusLabel').innerText = "アクセス可能な店舗がありません";
+            }
+        } catch (error) {
+            alert("初期データの取得に失敗しました。");
+        }
+    };
+
+    async function loadDashboardData() {
+        const store = document.getElementById('storeSelector').value;
+        const month = document.getElementById('monthPicker').value;
+        
+        if (!store) return;
+        
+        document.getElementById('statusLabel').innerText = "読み込み中...";
+        
+        try {
+            // GAS側の getMonthlyDetailData を呼び出し
+            const res = await callGasApi("getMonthlyDetailData", { storeName: store, targetMonth: month });
+            document.getElementById('statusLabel').innerText = "表示中：" + month.replace("-", "年") + "月";
+            renderDashboard(res);
+        } catch (error) {
+            document.getElementById('statusLabel').innerText = "データの読み込みに失敗しました";
+        }
+    }
+
+    function renderDashboard(res) {
+        // 1. 収支サマリー描画
+        document.getElementById('financeKpi').innerHTML = `
+            <div class="kpi-item"><div class="kpi-label">売上</div><div class="kpi-value" style="color:black">¥${res.sales.toLocaleString()}</div></div>
+            <div class="kpi-item"><div class="kpi-label">変動費</div><div class="kpi-value" style="color:#e11d48">¥${res.finance.variable.toLocaleString()}</div></div>
+            <div class="kpi-item"><div class="kpi-label">固定費</div><div class="kpi-value" style="color:#e11d48">¥${res.finance.fixed.toLocaleString()}</div></div>
+            <div class="kpi-item"><div class="kpi-label">諸経費</div><div class="kpi-value" style="color:#e11d48">¥${res.finance.expense.toLocaleString()}</div></div>
+            <div class="kpi-item"><div class="kpi-label">営業純利益</div><div class="kpi-value" style="color:#2563eb; font-weight:bold">¥${res.profit.toLocaleString()}</div></div>
+        `;
+
+        // 2. 来客分析描画
+        document.getElementById('visitorKpi').innerHTML = `
+            <div class="kpi-item"><div class="kpi-label">月間合計組数</div><div class="kpi-value">${res.parties}</div></div>
+            <div class="kpi-item"><div class="kpi-label">月間合計客数</div><div class="kpi-value">${res.customers}</div></div>
+            <div class="kpi-item"><div class="kpi-label">月間平均組数</div><div class="kpi-value">${res.monthlyAvgParties}</div></div>
+            <div class="kpi-item"><div class="kpi-label">月間平均客数</div><div class="kpi-value">${res.monthlyAvgCustomers}</div></div>
+            <div class="kpi-item"><div class="kpi-label">対組平均客数</div><div class="kpi-value">${res.partyAvg}</div></div>
+        `;
+
+        // 3. 収益性分析描画
+        document.getElementById('profitabilityKpi').innerHTML = `
+            <div class="kpi-item"><div class="kpi-label">限界利益</div><div class="kpi-value">¥${res.marginalProfit.toLocaleString()}</div></div>
+            <div class="kpi-item"><div class="kpi-label">限界利益率</div><div class="kpi-value">${res.marginalProfitRatio}%</div></div>
+            <div class="kpi-item"><div class="kpi-label">損益分岐点売上</div><div class="kpi-value">¥${res.breakEvenPoint.toLocaleString()}</div></div>
+        `;
+
+        // 4. 売上比率
+        const cats = res.categories;
+        document.getElementById('ratioTable').innerHTML = `
+            <tr><th>項目</th><th>売上</th><th>比率</th></tr>
+            <tr><td>■ドリンク売上</td><td>¥${cats["ドリンク"].toLocaleString()}</td><td>${res.sales > 0 ? (cats["ドリンク"]/res.sales*100).toFixed(1) : 0}%</td></tr>
+            <tr><td>■フード売上</td><td>¥${cats["フード"].toLocaleString()}</td><td>${res.sales > 0 ? (cats["フード"]/res.sales*100).toFixed(1) : 0}%</td></tr>
+            <tr><td>■コース売上</td><td>¥${cats["コース"].toLocaleString()}</td><td>${res.sales > 0 ? (cats["コース"]/res.sales*100).toFixed(1) : 0}%</td></tr>
+            <tr><td>■その他売上</td><td>¥${cats["その他"].toLocaleString()}</td><td>${res.sales > 0 ? (cats["その他"]/res.sales*100).toFixed(1) : 0}%</td></tr>
+            <tr><td>■テイクアウト売上</td><td>¥${cats["テイクアウト"].toLocaleString()}</td><td>${res.sales > 0 ? (cats["テイクアウト"]/res.sales*100).toFixed(1) : 0}%</td></tr>
+        `;
+
+        // 5. 曜日別平均
+        const days = ["日", "月", "火", "水", "木", "金", "土"];
+        document.getElementById('dayAvgTable').innerHTML = days.map(d => `
+            <tr><td>■${d}曜日</td><td class="text-right">¥${res.dayAverages[d].toLocaleString()}</td></tr>
+        `).join('');
+    }
+
+    function goBackToDashboard() {
+        window.location.href = "index.html";
+    }
+
+    // メニューの開閉を切り替えるシンプルロジック
+    function toggleFabMenu() {
+        const options = document.getElementById('fabMenuOptions');
+        const btn = document.getElementById('fabToggleBtn');
+        
+        options.classList.toggle('open');
+        btn.textContent = options.classList.contains('open') ? '✕' : '☰';
+    }
+  </script>
+</body>
+</html>

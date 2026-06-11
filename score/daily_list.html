@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>日別データ一覧 - SCORE</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'DM Sans', sans-serif; background: var(--bg, #f8fafc); color: #334155; margin: 0; padding: 10px; box-sizing: border-box; }
+
+        /* ヘッダー*/
+        .header { height: 60px; background: linear-gradient(90deg, #071a3d, #0b2b63); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .back-btn { border: none; background: none; color: white; font-size: 16px; cursor: pointer; padding: 8px 4px; display: flex; align-items: center; }
+        
+        /* 検索条件・コントロールエリア */
+        .search-bar { background: white; padding: 12px 16px; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .select-group { display: flex; align-items: center; gap: 6px; }
+        .select-group label { font-size: 12px; color: #64748b; font-weight: bold; }
+        
+        select { height: 36px; border-radius: 6px; border: 1px solid #cbd5e1; padding: 0 24px 0 8px; font-size: 14px; background: #fff; appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2364748b'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 6px center; background-size: 16px; }
+        
+        .search-btn { height: 36px; background: #071a3d; color: white; border: none; border-radius: 6px; padding: 0 16px; font-weight: bold; cursor: pointer; font-size: 14px; }
+        .search-btn:hover { background: #0b2b63; }
+        
+        .status-area { width: 100%; font-size: 13px; font-weight: bold; color: #1e3a8a; margin-top: 4px; padding-left: 4px; }
+
+        /* テーブルの最適化 */
+        .card { background: white; border-radius: 12px; padding: 10px; margin-top: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 0.8em; }
+
+        /* 列幅の調整 */
+        th:nth-child(6), td:nth-child(6) { width: 50px; }
+        th:not(:nth-child(6)), td:not(:nth-child(6)) { width: auto; }
+        
+        th, td { padding: 10px 4px; text-align: left; }
+        th { color: #64748b; border-bottom: 1px solid #e2e8f0; font-weight: 600; }
+        td { border-bottom: 1px solid var(--border, #e2e8f0); }
+        
+        /* モバイル対応 */
+        @media (max-width: 480px) {
+            th:nth-child(3), td:nth-child(3),
+            th:nth-child(5), td:nth-child(5) { display: none; }
+            .search-panel button { width: 100%; }
+        }
+
+        /* モーダル */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; }
+        .modal-content { background: white; margin: 5% auto; padding: 20px; width: 90%; max-width: 500px; border-radius: 16px; max-height: 90vh; overflow-y: auto; box-sizing: border-box; }
+        .modal-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 15px; }
+        @media (min-width: 480px) { .modal-grid { grid-template-columns: 1fr 1fr; gap: 15px; } }
+        .modal-item { display: flex; flex-direction: column; }
+        .modal-content label { font-size: 0.8em; color: #64748b; margin-bottom: 2px; }
+        
+        /* 入力フォーム共通ベース */
+        .modal-content input { padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 16px; transition: all 0.2s ease; }
+        
+        /* 編集不可能（★マーク）のスタイル */
+        .modal-content input:disabled:not(.editable) { background: #e2e8f0; color: #475569; border-color: #cbd5e1; cursor: not-allowed; }
+
+        /* 編集可能項目のスタイル（ロック時：白背景） */
+        .modal-content input.editable:disabled { background: #ffffff; color: #334155; border-color: #cbd5e1; opacity: 0.8; }
+
+        /* 活性化した時のスタイル（編集枠を青に） */
+        .modal-content input.editable:not(:disabled) { background: #fff; border-color: var(--accent, #2563eb); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15); color: #000; font-weight: 500; }
+
+        /* --- FAB全体の固定配置 --- */
+        .simple-fab-container {
+          position: fixed;
+          bottom: 25px;
+          right: 25px;
+          z-index: 9999;
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          font-family: sans-serif;
+        }
+
+        /* メインの丸型トグルボタン (☰) */
+        .simple-fab-toggle {
+          width: 50px;
+          height: 50px;
+          border: none;
+          border-radius: 50%;
+          background-color: #0d233a; /* テーブルヘッダーに合わせた濃紺 */
+          color: #ffffff;
+          font-size: 22px;
+          cursor: pointer;
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          outline: none;
+          transition: background-color 0.2s, transform 0.1s;
+          -webkit-tap-highlight-color: transparent;
+        }
+        .simple-fab-toggle:active {
+          transform: scale(0.92);
+        }
+
+        /* 収納されるメニューのコンテナ（最初は非表示） */
+        .simple-fab-options {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 8px;
+          margin-bottom: 12px;
+          opacity: 0;
+          visibility: hidden;
+          transform: translateY(10px);
+          transition: all 0.2s ease;
+        }
+
+        /* 開いたときのスタイル */
+        .simple-fab-options.open {
+          opacity: 1;
+          visibility: visible;
+          transform: translateY(0);
+        }
+
+        /* 文字だけのカプセル型リンクボタン */
+        .simple-fab-link {
+          display: block;
+          background-color: #ffffff;
+          color: #333333 !important;
+          text-decoration: none !important;
+          padding: 10px 20px;
+          border-radius: 22px;
+          font-size: 13px;
+          font-weight: bold;
+          box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+          border: 1px solid #e0e0e0;
+          white-space: nowrap;
+          text-align: center;
+          transition: background-color 0.2s;
+          -webkit-tap-highlight-color: transparent;
+        }
+        .simple-fab-link:active {
+          background-color: #f1f3f5;
+        }
+    </style>
+</head>
+<body>
+  <header class="header">
+    <button class="back-btn" onclick="goBackToDashboard()">⇦</button>
+    <div style="font-weight:bold; font-size: 15px;">デイリーリスト一覧</div>
+    <div style="width: 45px;"></div>
+  </header>
+
+  <div class="search-bar">
+    <div class="select-group">
+      <select id="storeSelector"></select>
+    </div>
+    <div class="select-group">
+      <input type="month" id="monthPicker" style="height:34px; border:1px solid #cbd5e1; border-radius:6px; padding:0 8px; font-family:inherit;">
+    </div>
+    <button class="search-btn" onclick="loadDailyData()">検索</button>
+    <div id="statusLabel" class="status-area">表示中：-</div>
+  </div>
+
+  <div class="card">
+      <table>
+          <thead><tr><th>日付</th><th>売上</th><th>営業利益</th><th>客数</th><th>客単価</th><th>詳細</th></tr></thead>
+          <tbody id="dailyBody"></tbody>
+      </table>
+  </div>
+
+  <div id="editModal" class="modal">
+      <div class="modal-content">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+              <button type="button" onclick="closeModal()" style="font-size: 20px; border:none; background:none; cursor:pointer;">×</button>
+              <button type="button" id="btnEnableEdit" onclick="enableEditing()" style="padding:6px 12px; border-radius:6px; border:1px solid #cbd5e1; background:white; cursor:pointer;">編集する</button>
+          </div>
+          <hr>
+          <div class="modal-grid">
+              <div class="modal-item"><label>伝票番号</label><input type="text" id="modalSlipID" disabled></div>
+              <div class="modal-item"><label>記録者</label><input type="text" id="modalCreator" disabled></div>
+              <div class="modal-item"><label>最終編集者</label><input type="text" id="modalEditor" disabled></div>
+              <div class="modal-item"><label>記録日時</label><input type="text" id="modalRecord" disabled></div>
+              <div class="modal-item"><label>営業日</label><input type="text" id="modalBusinessDay" disabled></div>
+              <div class="modal-item"><label>曜日</label><input type="text" id="modalDayOfWeek" disabled></div>
+              <div class="modal-item"><label>売上合計</label><input type="number" id="modalSales" disabled></div>
+              <div class="modal-item"><label>ドリンク</label><input type="number" id="modalDrink" class="editable" disabled oninput="calcSales()"></div>
+              <div class="modal-item"><label>フード</label><input type="number" id="modalFood" class="editable" disabled oninput="calcSales()"></div>
+              <div class="modal-item"><label>コース</label><input type="number" id="modalCourse" class="editable" disabled oninput="calcSales()"></div>
+              <div class="modal-item"><label>その他</label><input type="number" id="modalOthers" class="editable" disabled oninput="calcSales()"></div>
+              <div class="modal-item"><label>テイクアウト</label><input type="number" id="modalTo" class="editable" disabled oninput="calcSales()"></div>
+              <div class="modal-item"><label>仕入</label><input type="number" id="modalPurchase" class="editable" disabled></div>
+              <div class="modal-item"><label>諸経費</label><input type="number" id="modalMisc" class="editable" disabled></div>
+              <div class="modal-item"><label>組数</label><input type="number" id="modalParties" class="editable" disabled></div>
+              <div class="modal-item"><label>客数</label><input type="number" id="modalPeople" class="editable" disabled></div>
+              <div class="modal-item"><label>予約数</label><input type="number" id="modalReservation" class="editable" disabled></div>
+          </div>
+          <button type="button" id="btnSave" onclick="saveData()" style="display:none; width:100%; margin-top:20px; background:var(--accent, #2563eb); color:white; padding:12px; border:none; border-radius:8px; cursor:pointer; font-weight:bold;">保存する</button>
+      </div>
+  </div>
+
+  <div class="simple-fab-container">
+    <div class="simple-fab-options" id="fabMenuOptions">
+      <a href="?page=MonthlyDetail" class="simple-fab-link">月間サマリー</a>
+      <a href="?page=TrendAnalysis" class="simple-fab-link">チャート分析</a>
+      <a href="?page=DailyList" class="simple-fab-link">デイリーリスト一覧</a>
+    </div>
+    <button class="simple-fab-toggle" id="fabToggleBtn" onclick="toggleFabMenu()">☰</button>
+  </div>
+
+<script>
+
+const GAS_API_URL = "https://script.google.com/macros/s/AKfycby5Y6TZVuzYS-H3PfDMaAOvwTi4XqNWM9xVtbp6Zoe9bFfGMQvH_4GLx7CSv-2NexysUg/exec";
+
+// 1. URLパラメータを取得
+const params = new URLSearchParams(window.location.search);
+
+// 2. 変数 empNo を全体のどこからでも使えるように宣言（URLかSessionから取得）
+let empNo = params.get('empNo') || sessionStorage.getItem('employeeNumber');
+
+// 3. URLにパラメータがあれば、セッションストレージを復元
+if (empNo && params.get('empNo')) {
+    sessionStorage.setItem('employeeNumber', empNo);
+}
+
+// 4. セキュリティチェック（どちらにも社員番号がなければ弾く）
+if (!empNo) {
+    alert("セッションが切れました。ログイン画面に戻ります。");
+    window.location.href = "?page=Login"; 
+}
+
+let userRole = 'viewer';
+let currentStore = '';
+
+function enableEditing() {
+    if(userRole !== 'admin' && userRole !== 'editor') return alert('権限がありません');
+    document.querySelectorAll('.editable').forEach(el => el.disabled = false);
+    document.getElementById('btnSave').style.display = 'block';
+    document.getElementById('btnEnableEdit').style.display = 'none';
+}
+
+function handleEditClick(btn) {
+    const jsonStr = decodeURIComponent(btn.getAttribute('data-json'));
+    openModal(jsonStr);
+}
+
+function openModal(rJson) {
+    const r = typeof rJson === 'string' ? JSON.parse(rJson) : rJson;
+    currentStore = r.store;
+
+    // 日付（例: "2026-05-22"）から曜日を計算する処理
+    let dayOfWeekStr = "-";
+    if (r.date && r.date !== "-") {
+        const parts = r.date.split('-');
+        if (parts.length === 3) {
+            const selectedDate = new Date(parts[0], parts[1] - 1, parts[2]);
+            const dayLabels = ['日','月','火','水','木','金','土'];
+            dayOfWeekStr = dayLabels[selectedDate.getDay()];
+        }
+    }
+
+    const mapping = {
+        'modalSlipID': r.slipID, 'modalCreator': r.creator, 'modalEditor': r.editor,
+        'modalRecord': r.record, 'modalBusinessDay': r.date, 'modalSales': r.sales,
+        'modalDrink': r.drink, 'modalFood': r.food, 'modalCourse': r.course,
+        'modalOthers': r.others, 'modalTo': r.to, 'modalParties': r.parties,
+        'modalPeople': r.people, 'modalPurchase': r.purchase, 'modalMisc': r.misc,
+        'modalReservation': r.reservation,
+        'modalDayOfWeek': dayOfWeekStr
+    };
+
+    for (const [id, val] of Object.entries(mapping)) {
+        const el = document.getElementById(id);
+        if (el) el.value = (val === null || val === undefined || val === "-") ? "" : val;
+    }
+    if (typeof calcSales === 'function') calcSales();
+    document.querySelectorAll('.editable').forEach(el => el.disabled = true);
+    document.getElementById('btnSave').style.display = 'none';
+    const enableBtn = document.getElementById('btnEnableEdit');
+    if(enableBtn) enableBtn.style.display = 'block';
+    document.getElementById('editModal').style.display = 'block';
+}
+
+function closeModal() { 
+    document.getElementById('editModal').style.display = 'none'; 
+}
+
+function loadDailyData() {
+    const storeEl = document.getElementById('storeSelector');
+    const monthEl = document.getElementById('monthPicker');
+    if (!storeEl || !monthEl) return;
+
+    const store = storeEl.value;
+    const month = monthEl.value;
+
+    const statusLabel = document.getElementById('statusLabel');
+    if (statusLabel) statusLabel.innerText = "読み込み中...";
+
+    // Cloudflare API への非同期リクエストに書き換え
+    fetch('/api/getDailyListData', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ store, month })
+    })
+    .then(res => {
+        if (!res.ok) throw new Error('Network response was not ok');
+        return res.json();
+    })
+    .then(data => {
+        const tbody = document.getElementById('dailyBody');
+        tbody.innerHTML = '';
+
+        if (!data || data.length === 0 || data[0] === "ERROR") {
+            const msg = data && data[0] === "ERROR" ? data[1] : "データがありません";
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:red;">${msg}</td></tr>`;
+            if (statusLabel) statusLabel.innerText = "データなし";
+            return;
+        }
+
+        if (statusLabel && month) {
+            statusLabel.innerText = "表示中：" + month.replace("-", "年") + "月";
+        }
+
+        data.forEach(r => {
+            const tr = document.createElement('tr');
+            const jsonStr = encodeURIComponent(JSON.stringify(r));
+            tr.innerHTML = `
+                <td>${r.date || '-'}</td>
+                <td>¥${Number(r.sales || 0).toLocaleString()}</td>
+                <td>${(() => {
+                    if (!r.sales) return '-';
+                    // 営業利益の計算
+                    const profit = Math.floor(Number(r.sales) - Number(r.purchase || 0) - Number(r.misc || r.miscellaneous || 0));
+                    
+                    if (profit < 0) {
+                      // マイナスの場合は絶対値（Math.abs）にして「-¥1,234」の形で赤文字（太字）にする
+                      return `<span style="color: #dc3545; font-weight: bold;">-¥${Math.abs(profit).toLocaleString()}</span>`;
+                    } else {
+                      // プラスの場合は通常の黒文字
+                      return `¥${profit.toLocaleString()}`;
+                    }
+                  })()}</td>
+                <td>${r.people || 0}</td>
+                <td>${(r.sales && Number(r.people) > 0) ? '¥' + Math.floor(Number(r.sales) / Number(r.people)).toLocaleString() : '-'}</td>
+                <td><button onclick="handleEditClick(this)" data-json='${jsonStr}' style="padding:4px 8px; border-radius:4px; border:1px solid #cbd5e1; background:white; cursor:pointer;">詳細</button></td>
+            `;
+            tbody.appendChild(tr);
+        });
+    })
+    .catch(err => {
+        console.error("APIエラー:", err);
+        if (statusLabel) statusLabel.innerText = "通信エラー";
+    });
+}
+
+function saveData() {
+    // 保存ボタンを「保存中...」に変更して連打・誤操作を防止
+    const btn = document.getElementById('btnSave');
+    btn.innerText = "保存中...";
+    btn.disabled = true;
+    btn.style.opacity = "0.7";
+
+    const data = {
+        date: document.getElementById('modalBusinessDay').value,
+        dayOfWeek: document.getElementById('modalDayOfWeek').value,
+        store: currentStore,
+        sales: document.getElementById('modalSales').value,
+        drink: document.getElementById('modalDrink').value,
+        food: document.getElementById('modalFood').value,
+        course: document.getElementById('modalCourse').value,
+        others: document.getElementById('modalOthers').value,
+        to: document.getElementById('modalTo').value,
+        purchase: document.getElementById('modalPurchase').value,
+        misc: document.getElementById('modalMisc').value,
+        parties: document.getElementById('modalParties').value,
+        people: document.getElementById('modalPeople').value,
+        reservation: document.getElementById('modalReservation').value
+    };
+
+    // Cloudflare API への保存リクエストに書き換え
+    fetch('/api/updateDailyData', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data, empNo: sessionStorage.getItem('employeeNumber') })
+    })
+    .then(res => {
+        if (!res.ok) throw new Error('Save failed');
+        return res.json();
+    })
+    .then(() => {
+        alert('保存しました'); 
+        
+        // ボタンの状態を元に戻す
+        btn.innerText = "保存する";
+        btn.disabled = false;
+        btn.style.opacity = "1";
+        
+        closeModal(); 
+        loadDailyData();
+    })
+    .catch(err => {
+        console.error("保存エラー:", err);
+        alert("エラーが発生しました");
+        
+        // エラー時もボタンの状態を元に戻す
+        btn.innerText = "保存する";
+        btn.disabled = false;
+        btn.style.opacity = "1";
+    });
+}
+
+function calcSales() {
+    const d = parseFloat(document.getElementById('modalDrink').value) || 0;
+    const f = parseFloat(document.getElementById('modalFood').value) || 0;
+    const c = parseFloat(document.getElementById('modalCourse').value) || 0;
+    const o = parseFloat(document.getElementById('modalOthers').value) || 0;
+    const t = parseFloat(document.getElementById('modalTo').value) || 0;
+    document.getElementById('modalSales').value = d + f + c + o + t;
+}
+
+window.onload = () => {
+    // 今月を初期値としてセット ---
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0'); // 1〜9月を01〜09に変換
+    document.getElementById('monthPicker').value = `${year}-${month}`;
+
+    const empNo = sessionStorage.getItem('employeeNumber');
+
+    // ユーザー権限チェックAPI呼び出し
+    fetch('/api/checkUserPermission', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ empNo })
+    })
+    .then(res => res.json())
+    .then(r => { userRole = r; })
+    .catch(err => console.error("Permission check error:", err));
+    
+    // アクセス可能店舗一覧API呼び出し
+    fetch('/api/getAccessibleStoreList', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ empNo })
+    })
+    .then(res => res.json())
+    .then(stores => {
+        const selector = document.getElementById('storeSelector');
+        selector.innerHTML = stores.map(s => `<option value="${s}">${s}</option>`).join('');
+        
+        // 月がセットされた状態でデータを読み込む
+        loadDailyData(); 
+    })
+    .catch(err => console.error("Get stores error:", err));
+};
+
+function goBackToDashboard() {
+    const empNo = sessionStorage.getItem('employeeNumber') || "";
+    // Cloudflare Pagesのルーティング構成に合わせて遷移先を設定
+    window.location.href = "?page=Index&empNo=" + encodeURIComponent(empNo);
+}
+
+// メニューの開閉を切り替えるシンプルロジック（重複を削除し、正しい実装に一本化）
+function toggleFabMenu() {
+    const options = document.getElementById('fabMenuOptions');
+    const btn = document.getElementById('fabToggleBtn');
+    
+    // openクラスをつけ外ししてメニューを出し入れ
+    options.classList.toggle('open');
+    
+    // ボタンの文字を ☰ と ✕ で切り替える
+    btn.textContent = options.classList.contains('open') ? '✕' : '☰';
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SCORE ログイン</title>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: "Segoe UI", sans-serif;
+      background: linear-gradient(135deg, #041a4d, #08286d);
+      /* スマホのキーボードせり上がり対策として min-height に修正 */
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-sizing: border-box;
+      padding: 20px; /* 画面が極端に狭いときの上下左右の余白 */
+    }
+
+    /* =========================================
+       ログインカード
+    ========================================= */
+    .login-card {
+      width: 380px;
+      max-width: 100%; /* スマホなどの横幅が狭い画面でもはみ出さないための保険 */
+      background: white;
+      border-radius: 32px;
+      padding: 48px 44px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+      text-align: center;
+      box-sizing: border-box;
+    }
+
+    /* =========================================
+       ロゴ
+    ========================================= */
+    .logo-area {
+      width: 220px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+    .logo-area svg {
+      width: 200px;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+    }
+
+    /* =========================================
+       サブタイトル
+    ========================================= */
+    .sub-title {
+      font-size: 14px;
+      color: #666;
+      margin-top: 6px;
+      margin-bottom: 34px;
+      letter-spacing: 0.4px;
+      text-align: center;
+    }
+
+    /* =========================================
+       入力エリア
+    ========================================= */
+    .form-group {
+      margin-bottom: 28px;
+      text-align: center;
+    }
+    .form-group label {
+      display: block;
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: #222;
+    }
+
+    /* =========================================
+       入力欄
+    ========================================= */
+    .form-input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 18px 20px;
+      border: 1px solid #d9dfeb;
+      border-radius: 18px;
+      font-size: 17px;
+      text-align: center;
+      background: #f8fafc;
+      transition: 0.2s;
+      color: #222;
+    }
+    .form-input:focus {
+      outline: none;
+      border-color: #2f63ff;
+      background: white;
+      box-shadow: 0 0 0 4px rgba(47,99,255,0.12);
+    }
+    .form-input::placeholder {
+      text-align: center;
+      color: #9aa3b2;
+    }
+
+    /* =========================================
+       ボタン
+    ========================================= */
+    .login-btn {
+      width: 100%;
+      border: none;
+      padding: 18px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #2f63ff, #2855db);
+      color: white;
+      font-size: 20px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: 0.2s;
+    }
+    .login-btn:hover {
+      transform: translateY(-1px);
+      opacity: 0.95;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-card">
+    <div class="logo-area">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="40 260 720 240">
+        <path fill="#111111" d="M179.2,431.06c0,23.44-19.07,42.52-42.51,42.52H55.47v-22.91h81.21c10.81,0,19.6-8.79,19.6-19.61s-8.79-19.6-19.6-19.6h-50.15c-23.44,0-42.52-19.08-42.52-42.51s19.08-42.52,42.52-42.52h81.2v22.91h-81.2c-10.82,0-19.61,8.79-19.61,19.61s8.79,19.6,19.61,19.6h50.15c23.44,0,42.51,19.08,42.51,42.51Z"/>
+        <path fill="#111111" d="M325.13,473.58h-63.96c-40.57,0-73.58-33.01-73.58-73.58s33.01-73.58,73.58-73.58h63.96v22.91h-63.96c-27.94,0-50.67,22.73-50.67,50.67s22.73,50.67,50.67,50.67h63.96v22.91Z"/>
+        <path fill="#111111" d="M326.68,393.83h23.02c2.81-23.01,21.12-41.32,44.13-44.13v-23.02c-35.66,2.97-64.19,31.5-67.16,67.16Z"/>
+        <path fill="#111111" d="M450.3,406.17c-2.81,23.01-21.12,41.32-44.13,44.13v23.02c35.66-2.97,64.19-31.5,67.16-67.16h-23.02Z"/>
+        <path fill="#438392" d="M349.7,406.17h-23.02c2.97,35.66,31.5,64.19,67.16,67.16v-23.02c-23.01-2.81-41.32-21.12-44.13-44.13Z"/>
+        <path fill="#f15a24" d="M406.17,326.68v23.02c23.01,2.81,41.32,21.12,44.13,44.13h23.02c-2.97-35.66-31.5-64.19-67.16-67.16Z"/>
+        <path fill="#111111" d="M623.86,473.66h-30.34l-73.9-85.2h50.17c10.81,0,19.6-8.79,19.6-19.6s-8.79-19.61-19.6-19.61h-81.21v-22.91h81.21c23.44,0,42.51,19.08,42.51,42.52s-19.05,42.5-42.48,42.51l54.04,62.29Z"/>
+        <rect fill="#111111" x="488.58" y="388.47" width="22.91" height="85.19"/>
+        <path fill="#111111" d="M655.17,368.94c0,10.81,8.79,19.6,19.61,19.6h50.15v22.91h-50.15c-10.82,0-19.61,8.79-19.61,19.6s8.79,19.61,19.61,19.61h81.2v22.91h-81.2c-23.44,0-42.52-19.08-42.52-42.52,0-12.24,5.21-23.3,13.53-31.06-8.32-7.75-13.53-18.81-13.53-31.06,0-23.44,19.08-42.52,42.52-42.52h81.2v22.91h-81.2c-10.82,0-19.61,8.79-19.61,19.61Z"/>
+      </svg>
+    </div>
+
+    <div class="sub-title">
+      Sales, Cost & Operations Reporting
+    </div>
+
+    <div class="form-group">
+      <label>社員番号</label>
+      <input type="text" id="employeeId" class="form-input" placeholder="社員番号を入力">
+    </div>
+
+    <div class="form-group">
+      <label>パスワード</label>
+      <input type="password" id="password" class="form-input" placeholder="パスワードを入力">
+    </div>
+
+    <button type="button" class="login-btn" onclick="login()">ログイン</button>
+  </div>
+
+  <script>
+  //  GASで「ウェブアプリとしてデプロイ」した際に発行されるURLをここに貼り付けてください
+  const GAS_API_URL = "https://script.google.com/macros/s/AKfycby5Y6TZVuzYS-H3PfDMaAOvwTi4XqNWM9xVtbp6Zoe9bFfGMQvH_4GLx7CSv-2NexysUg/exec"; 
+
+  function login() {
+    const empNum = document.getElementById('employeeId')?.value;
+    const pass = document.getElementById('password')?.value;
+    
+    if (!empNum || !pass) {
+      alert('社員番号とパスワードを入力してください');
+      return;
+    }
+    
+    // CloudflareからGASの裏側（API）へ通信
+    fetch(GAS_API_URL, {
+      method: "POST",
+      mode: "cors",
+      headers: {
+        // GASでCORSエラー（通信拒否）を回避するための標準的な設定
+        "Content-Type": "text/plain" 
+      },
+      body: JSON.stringify({
+        action: 'loginUser', // GAS側のdoPostで識別するためのアクション名
+        id: empNum,
+        pass: pass
+      })
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error("サーバーエラーが発生しました");
+      }
+      return response.json();
+    })
+    .then(result => {
+      if (result && result.success) {
+        // セッションストレージへの保存（役割は以前のまま維持）
+        sessionStorage.setItem('employeeNumber', empNum);
+        sessionStorage.setItem('userName', result.name || 'スタッフ');
+        sessionStorage.setItem('userRole', result.role || '');
+        
+        // Cloudflare上のメイン画面（index.html）へ遷移
+        window.location.href = "index.html";
+      } else {
+        alert('社員番号またはパスワードが間違っています');
+      }
+    })
+    .catch(err => {
+      alert('通信エラーが発生しました: ' + err.message);
+    });
+  }
+  </script>
+</body>
+</html>

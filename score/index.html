@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SCORE ダッシュボード</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; background: #f4f7fb; color: #333; overflow-x: hidden; -webkit-text-size-adjust: 100%; }
+
+    /* ヘッダー */
+    header { position: sticky; top: 0; z-index: 100; height: 64px; background: #041a4d; display: flex; align-items: center; justify-content: center; padding: 0 16px; color: white; box-shadow: 0 4px 14px rgba(0,0,0,0.15); }
+    .header-inner { width: 100%; max-width: 1000px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .menu-btn { background: none; border: none; color: white; font-size: 26px; cursor: pointer; padding: 8px; z-index: 110; display: flex; align-items: center; }
+
+    .logout-btn { background: #ef4444; border: none; color: white; padding: 8px 14px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 13px; }
+
+    /* サイドメニュー */
+    #menuUserDisplay {
+      padding-left: 24px;
+      padding-right: 24px;
+      box-sizing: border-box;
+    }
+    .sidebar { position: fixed; top: 0; left: -280px; width: 280px; height: 100%; background: #071a3d; color: white; z-index: 2000; transition: left 0.3s ease; box-shadow: 4px 0 15px rgba(0,0,0,0.25); display: flex; flex-direction: column; }
+    .sidebar.open { left: 0; }
+    .sidebar-header { height: 64px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .close-btn { background: none; border: none; color: white; font-size: 22px; cursor: pointer; padding: 10px; }
+    .sidebar-menu { padding: 15px 0; flex: 1; overflow-y: auto; }
+    .menu-item { display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; color: rgba(255,255,255,0.8); font-size: 15px; font-weight: 600; cursor: pointer; }
+    .menu-item:hover { background: rgba(255,255,255,0.1); }
+    .submenu { max-height: 0; overflow: hidden; background: rgba(0, 0, 0, 0.2); transition: max-height 0.3s ease-out; }
+    .submenu.open { max-height: 200px; }
+    .submenu-item { padding: 12px 24px 12px 48px; color: rgba(255,255,255,0.7); font-size: 14px; cursor: pointer; }
+    .sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1999; display: none; }
+    .sidebar-overlay.open { display: block; }
+
+    /* コンテンツ全体 */
+    .container { padding: 16px 12px; padding-bottom: 110px; max-width: 1000px; margin: 0 auto; box-sizing: border-box; }
+    .meta-info { display: flex; justify-content: space-between; font-size: 13px; color: #64748b; font-weight: 600; margin-bottom: 16px; padding: 0 4px; }
+
+    /* カードスタイル */
+    .card { background: white; border-radius: 16px; padding: 20px; margin-bottom: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); box-sizing: border-box; }
+    .card-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; gap: 8px; }
+    .title-flex { display: flex; align-items: center; gap: 8px; }
+    .card-title { font-size: 15px; font-weight: bold; color: #0f172a; }
+    .month-badge { background: #071a3d; color: white; font-size: 12px; font-weight: bold; padding: 4px 8px; border-radius: 6px; white-space: nowrap; }
+    .link-text { font-size: 13px; color: #2563eb; cursor: pointer; font-weight: bold; white-space: nowrap; text-decoration: none; }
+
+    /* サマリーグリッド */
+    .stats-grid-1 { display: grid; grid-template-columns: 1fr; margin-bottom: 12px; }
+    .stats-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+    .stat-box { background: #f8fafc; border-radius: 12px; padding: 14px 6px; text-align: center; border: 1px solid #f1f5f9; box-sizing: border-box; }
+    .stat-label { font-size: 11px; color: #64748b; margin-bottom: 6px; font-weight: 600; }
+    .stat-value { font-size: 15px; font-weight: bold; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .stat-value.green { color: #15803d; }
+    .stat-value.warn { color: #b45309; }
+
+    /* チャート・テーブル */
+    .chart-container { position: relative; width: 100%; height: 240px; }
+    .table-responsive { width: 100%; }
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; }
+    th { background: #f8fafc; color: #64748b; font-weight: 600; padding: 12px 10px; border-bottom: 2px solid #e2e8f0; white-space: nowrap; }
+    td { padding: 12px 10px; border-bottom: 1px solid #f1f5f9; color: #334155; white-space: nowrap; }
+
+    /* フッター */
+    .footer-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 76px; background: rgba(244,247,251,0.9); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 900; padding: 0 16px; box-sizing: border-box; }
+    .nav-btn { width: 100%; max-width: 400px; height: 48px; background: #071a3d; color: white; border: none; border-radius: 12px; font-size: 15px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(7, 26, 61, 0.2); }
+
+    /* 店舗セレクター */
+    .store-select { 
+      background-color: #ffffff; 
+      color: #1e293b;
+      border: 1px solid #e2e8f0;
+      padding: 8px 32px 8px 14px;
+      border-radius: 20px;
+      font-size: 14px; 
+      font-weight: 600; 
+      outline: none; 
+      cursor: pointer;
+      appearance: none; 
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2364748b'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      background-size: 18px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+      transition: all 0.2s ease;
+      max-width: 180px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .store-select:hover { border-color: #94a3b8; background-color: #fcfcfc; }
+    .store-select:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+
+    /* 📱 モバイル用レスポンシブスタイル (画面幅600px以下) */
+    @media (max-width: 600px) {
+      header { height: 56px; padding: 0 12px; }
+      .sidebar-header { height: 56px; }
+      .logout-btn { padding: 6px 10px; font-size: 12px; }
+      .store-select { font-size: 13px; padding: 6px 28px 6px 12px; max-width: 140px; background-position: right 6px center; }
+      .card { padding: 16px; border-radius: 12px; margin-bottom: 12px; }
+      .stat-value { font-size: 14px; }
+      .meta-info { font-size: 12px; }
+      
+      /* デイリーリストテーブルをスマホ用の縦型リストに変形 */
+      .table-responsive table, 
+      .table-responsive thead, 
+      .table-responsive tbody, 
+      .table-responsive th, 
+      .table-responsive td, 
+      .table-responsive tr { display: block; width: 100%; box-sizing: border-box; }
+      .table-responsive thead { display: none; } /* ヘッダーを非表示 */
+      
+      #scoreCardBody tr { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+      #scoreCardBody tr:last-child { margin-bottom: 0; }
+      
+      #scoreCardBody td { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px dashed #e2e8f0; font-size: 13px; }
+      #scoreCardBody td:last-child { border-bottom: none; padding-bottom: 0; }
+      #scoreCardBody td:first-child { font-weight: bold; color: #0f172a; font-size: 14px; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; margin-bottom: 4px; }
+      
+      /* 擬似要素で項目名ラベルを左側に表示 */
+      #scoreCardBody td:not(:first-child)::before { content: attr(data-label); font-weight: 600; color: #64748b; font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="sidebarOverlay" class="sidebar-overlay" onclick="toggleMenu()"></div>
+  <div id="sidebarMenu" class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-title" style="font-weight: bold;">MENU</div>
+      <button class="close-btn" onclick="toggleMenu()">✕</button>
+    </div>
+    <div class="sidebar-user">
+      <div id="menuUserDisplay" style="font-weight: bold; font-size: 15px; margin-top: 12px; color: #38bdf8;">Loading...</div>
+    </div>
+    <div class="sidebar-menu">
+      <div class="menu-item" onclick="toggleMenu()"><span>ホーム</span></div>
+      <div class="menu-item" onclick="goToInput()"><span>日報登録</span></div>
+      <div class="menu-item" onclick="toggleSettingMenu()">
+        <span>設定</span>
+        <span id="settingArrow" class="menu-arrow">▼</span>
+      </div>
+      <div id="settingSubmenu" class="submenu">
+        <div class="submenu-item" onclick="clickSubMenu('password')">パスワード設定</div>
+        <div class="submenu-item admin-only" onclick="clickSubMenu('permission')">権限設定</div>
+        <div class="submenu-item admin-only" onclick="clickSubMenu('fixedcost')">固定費設定</div>
+      </div>
+      <div class="menu-item" onclick="exportCsv()">CSVデータ出力</div>
+      <div class="menu-item" onclick="clickHelp()"><span>ヘルプ</span></div>
+      <div class="menu-item" style="color: #f87171; margin-top: 30px; border-top: 1px solid rgba(255,255,255,0.1);" onclick="logout()"><span>🚪 ログアウト</span></div>
+    </div>
+  </div>
+
+  <header>
+    <div class="header-inner">
+      <button class="menu-btn" onclick="toggleMenu()">☰</button>
+      <select id="storeSelector" class="store-select" onchange="loadDashboardData()"></select>
+      <button class="logout-btn" onclick="logout()">ログアウト</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="meta-info">
+      <div id="currentDateDisplay">----年--月--日(--)</div>
+      <div id="userNameDisplay">ゲスト (admin)</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title-row">
+        <div class="title-flex">
+          <div id="currentMonthBadge" class="month-badge">--月</div>
+          <div class="card-title">月間サマリー</div>
+        </div>
+        <a href="monthly_detail.html" class="link-text">詳細を見る</a>
+      </div>
+
+      <div class="stats-grid-1">
+        <div class="stat-box"><div class="stat-label">売上</div><div id="mSales" class="stat-value">¥0</div></div>
+      </div>
+
+      <div class="stats-grid-3">
+        <div class="stat-box"><div class="stat-label">変動費</div><div id="mVariable" class="stat-value">¥0</div></div>
+        <div class="stat-box"><div class="stat-label">固定費</div><div id="mFixed" class="stat-value">¥0</div></div>
+        <div class="stat-box"><div class="stat-label">諸経費</div><div id="mExpenses" class="stat-value">¥0</div></div>
+      </div>
+
+      <div class="stats-grid-1">
+        <div class="stat-box" style="background: #f0fdf4;">
+          <div class="stat-label">営業純利益</div>
+          <div id="mProfit" class="stat-value green" style="font-weight:bold;">¥0</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title-row">
+        <div class="title-flex">
+          <div class="card-title">売上チャート（直近30日間）</div>
+        </div>
+        <a href="trend_analysis.html" class="link-text">詳細を見る</a>
+      </div>
+      <div class="chart-container">
+        <canvas id="salesChart"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title-row">
+        <div class="title-flex">
+          <div class="card-title">デイリーリスト（直近3日間）</div>
+        </div>
+        <a href="daily_list.html" class="link-text">詳細を見る</a>
+      </div>
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr><th>日付 (曜日)</th><th>売上</th><th>営業利益</th><th>客数</th><th>客単価</th></tr>
+          </thead>
+          <tbody id="scoreCardBody">
+            <tr><td colspan="5" style="text-align:center; color:#94a3b8; padding: 20px;">データを読込中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-nav">
+    <button class="nav-btn" onclick="goToInput()">＋ 今日の日報を登録する</button>
+  </div>
+
+  <script>
+    //  GASで「ウェブアプリとしてデプロイ」した際に発行されるURLをここに貼り付けてください
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycby5Y6TZVuzYS-H3PfDMaAOvwTi4XqNWM9xVtbp6Zoe9bFfGMQvH_4GLx7CSv-2NexysUg/exec"; 
+
+    // セキュリティチェック（ブラウザ内のセッションから取得）
+    let empNo = sessionStorage.getItem('employeeNumber');
+
+    if (!empNo) {
+      alert("セッションが切れました。ログイン画面に戻ります。");
+      window.location.href = "login.html"; 
+    }
+
+    let myChart = null;
+
+    function toggleMenu() {
+      const sidebar = document.getElementById('sidebarMenu');
+      const overlay = document.getElementById('sidebarOverlay');
+      if (sidebar.classList.contains('open')) {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('open');
+        document.getElementById('settingSubmenu').classList.remove('open');
+      } else {
+        sidebar.classList.add('open');
+        overlay.classList.add('open');
+      }
+    }
+
+    function toggleSettingMenu() {
+      const submenu = document.getElementById('settingSubmenu');
+      const arrow = document.getElementById('settingArrow');
+      submenu.classList.toggle('open');
+      if(arrow) arrow.classList.toggle('rotate');
+    }
+
+    function clickSubMenu(type) {
+      toggleMenu();
+      if (type === 'password') window.location.href = "password_setting.html";
+      else if (type === 'permission') window.location.href = "permission_setting.html";
+      else if (type === 'fixedcost') window.location.href = "fixed_cost_setting.html";
+    }
+
+    function clickHelp() {
+      toggleMenu();
+      window.location.href = "help.html";
+    }
+
+    window.onload = function() {
+      const loginUser = sessionStorage.getItem('userName') || 'ゲスト';
+      const userRole = sessionStorage.getItem('userRole') || 'staff';
+      document.getElementById('userNameDisplay').innerText = `${loginUser} (${userRole})`;
+      document.getElementById('menuUserDisplay').innerText = `${loginUser} (${userRole})`;
+
+      if (userRole !== 'admin') {
+        const adminItems = document.querySelectorAll('.admin-only');
+        adminItems.forEach(item => item.style.display = 'none');
+      }
+
+      if (userRole === 'viewer') {
+        const footerBtn = document.querySelector('.footer-nav');
+        if (footerBtn) footerBtn.style.display = 'none';
+        const menuItems = document.querySelectorAll('.menu-item');
+        menuItems.forEach(item => { if (item.innerText.includes('日報登録')) item.style.display = 'none'; });
+      }
+
+      const now = new Date();
+      const week = ['日','月','火','水','木','金','土'];
+      document.getElementById('currentDateDisplay').innerText = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日(${week[now.getDay()]})`;
+      document.getElementById('currentMonthBadge').innerText = `${now.getMonth() + 1}月`;
+
+      // 1. 店舗リストをGASから非同期で取得
+      fetch(GAS_API_URL, {
+        method: "POST",
+        mode: "cors",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({ action: "getAccessibleStoreList", empNo: empNo })
+      })
+      .then(res => res.json())
+      .then(stores => {
+        const selector = document.getElementById('storeSelector');
+        selector.innerHTML = '';
+        if(stores && stores.length > 0){
+          stores.forEach(st => {
+            if(!st) return;
+            const op = document.createElement('option');
+            op.value = st; op.textContent = st;
+            selector.appendChild(op);
+          });
+          loadDashboardData();
+        } else {
+          selector.innerHTML = '<option value="">店舗権限なし</option>';
+        }
+      })
+      .catch(err => {
+        console.error("店舗リスト取得エラー:", err);
+        document.getElementById('storeSelector').innerHTML = '<option value="">通信エラー</option>';
+      });
+    };
+
+    function loadDashboardData() {
+      const storeName = document.getElementById('storeSelector').value;
+      if(!storeName) return;
+
+      const now = new Date();
+      const targetMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+      // 2. 月間サマリー取得を fetch に書き換え
+      fetch(GAS_API_URL, {
+        method: "POST",
+        mode: "cors",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({ action: "getMonthlyStats", storeName: storeName, targetMonth: targetMonth })
+      })
+      .then(res => res.json())
+      .then(stats => {
+        const mSales = document.getElementById('mSales');
+        if(mSales) mSales.innerText = `¥${stats.sales.toLocaleString()}`;
+        
+        const mVariable = document.getElementById('mVariable');
+        if(mVariable) mVariable.innerText = `¥${(stats.variableCost || 0).toLocaleString()}`;
+        
+        const mFixed = document.getElementById('mFixed');
+        if(mFixed) mFixed.innerText = `¥${(stats.fixedCost || 0).toLocaleString()}`;
+        
+        const mExpenses = document.getElementById('mExpenses');
+        if(mExpenses) mExpenses.innerText = `¥${(stats.expenses || 0).toLocaleString()}`;
+        
+        const profit = stats.sales - (stats.variableCost || 0) - (stats.fixedCost || 0) - (stats.expenses || 0);
+        const profitEl = document.getElementById('mProfit');
+        if(profitEl) {
+            profitEl.innerText = `¥${profit.toLocaleString()}`;
+            profitEl.className = `stat-value ${profit < 0 ? 'warn' : 'green'}`;
+        }
+      })
+      .catch(err => console.error("サマリー取得エラー:", err));
+
+      // 3. グラフとデイリーリスト取得を fetch に書き換え
+      fetch(GAS_API_URL, {
+        method: "POST",
+        mode: "cors",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({ action: "getRecentDailySales", storeName: storeName })
+      })
+      .then(res => res.json())
+      .then(res => {
+        renderSalesChart(res.labels, res.sales);
+        
+        const tbody = document.getElementById('scoreCardBody');
+        if(tbody) {
+            tbody.innerHTML = '';
+            res.scorecard.forEach(item => {
+              const tr = document.createElement('tr');
+              const isNoData = item.sales === "未入力";
+              
+              let d = item.date.replace(/\(Sun\)/g, '(日)').replace(/\(Mon\)/g, '(月)').replace(/\(Tue\)/g, '(火)')
+                               .replace(/\(Wed\)/g, '(水)').replace(/\(Thu\)/g, '(木)').replace(/\(Fri\)/g, '(金)').replace(/\(Sat\)/g, '(土)');
+              
+              tr.innerHTML = `
+                <td>${d}</td>
+                <td data-label="売上" style="${isNoData ? 'color:#94a3b8;' : ''}">${isNoData ? '未入力' : '¥' + item.sales}</td>
+                <td data-label="営業利益" style="${isNoData ? 'color:#94a3b8;' : ''}">${isNoData ? '未入力' : '¥' + item.profit}</td>
+                <td data-label="客数" style="${isNoData ? 'color:#94a3b8;' : ''}">${isNoData ? '未入力' : item.customers + '人'}</td>
+                <td data-label="客単価" style="${isNoData ? 'color:#94a3b8;' : ''}">${isNoData ? '未入力' : '¥' + item.unitPrice}</td>
+              `;
+              tbody.appendChild(tr);
+            });
+        }
+      })
+      .catch(err => console.error("デイリーリスト取得エラー:", err));
+    }
+
+    function renderSalesChart(labels, data) {
+      const ctx = document.getElementById('salesChart').getContext('2d');
+      if (myChart) { myChart.destroy(); }
+      
+      myChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: '売上合計',
+            data: data,
+            borderColor: '#2563eb',
+            backgroundColor: 'rgba(37, 99, 235, 0.05)',
+            borderWidth: 2,
+            pointRadius: 2,
+            tension: 0.2,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 } } },
+            x: { grid: { display: false }, ticks: { font: { size: 10 }, maxTicksLimit: 7 } }
+          }
+        }
+      });
+    }
+
+    function goToInput() {
+      const userRole = sessionStorage.getItem('userRole') || 'staff';
+      if (userRole === 'viewer') {
+        alert('閲覧権限（viewer）の方は、日報の登録・編集ができません。');
+        return;
+      }
+      window.location.href = "input.html";
+    }
+
+    function logout() {
+      sessionStorage.clear();
+      window.location.href = "login.html";
+    }
+
+    function exportCsv() {
+      const store = document.getElementById('storeSelector').value;
+      const year = new Date().getFullYear();
+      
+      document.getElementById('sidebarMenu').classList.remove('open');
+      document.getElementById('sidebarOverlay').classList.remove('open');
+      
+      alert("CSVを生成中です...");
+      
+      // 4. CSVダウンロードを fetch に書き換え
+      fetch(GAS_API_URL, {
+        method: "POST",
+        mode: "cors",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({ action: "generateMonthlyCsv", store: store, year: year })
+      })
+      .then(res => res.json())
+      .then(csvContent => {
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = store + "_" + year + "_report.csv";
+        a.click();
+      })
+      .catch(err => alert("CSV出力エラーが発生しました: " + err.message));
+    }
+  </script>
+</body>
+</html>

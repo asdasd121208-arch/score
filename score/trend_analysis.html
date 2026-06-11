@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>チャート分析 - SCORE</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+  
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; background: #f4f7fb; color: #333; -webkit-text-size-adjust: 100%; }
+    
+    /* ヘッダー*/
+    .header { height: 60px; background: linear-gradient(90deg, #071a3d, #0b2b63); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .back-btn { border: none; background: none; color: white; font-size: 16px; cursor: pointer; padding: 8px 4px; display: flex; align-items: center; }
+    
+    /* 検索条件・コントロールエリア */
+    .search-bar { background: white; padding: 12px 16px; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .select-group { display: flex; align-items: center; gap: 6px; }
+    .select-group label { font-size: 12px; color: #64748b; font-weight: bold; }
+    
+    select { height: 36px; border-radius: 6px; border: 1px solid #cbd5e1; padding: 0 24px 0 8px; font-size: 14px; background: #fff; appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2364748b'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 6px center; background-size: 16px; }
+    
+    .search-btn { height: 36px; background: #071a3d; color: white; border: none; border-radius: 6px; padding: 0 16px; font-weight: bold; cursor: pointer; font-size: 14px; }
+    .search-btn:hover { background: #0b2b63; }
+    
+    .status-area { width: 100%; font-size: 13px; font-weight: bold; color: #1e3a8a; margin-top: 4px; padding-left: 4px; }
+
+    /* コンテンツ全体 */
+    .content { padding: 12px; max-width: 900px; margin: 0 auto; box-sizing: border-box; }
+    .card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .card-title { font-size: 15px; font-weight: bold; color: #0f172a; margin-bottom: 16px; display: flex; align-items: center; gap: 6px; border-left: 4px solid #0ea5e9; padding-left: 8px; }
+    
+    /* チャート・数値表示共通 */
+    .chart-container { position: relative; width: 100%; min-height: 240px; margin-bottom: 16px; }
+    .pie-container { max-width: 320px; margin: 0 auto; }
+    
+    .data-legend-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #f1f5f9; }
+    .legend-item { display: flex; flex-direction: column; align-items: center; text-align: center; }
+    .legend-label { font-size: 11px; color: #64748b; font-weight: 600; margin-bottom: 2px; }
+    .legend-val { font-size: 13px; font-weight: bold; color: #1e293b; }
+
+    /* 📱 モバイル対応調整 */
+    @media (max-width: 600px) {
+      .header { height: 56px; padding: 0 12px; }
+      .search-bar { padding: 10px 12px; gap: 8px; }
+      select { font-size: 13px; height: 34px; }
+      .search-btn { height: 34px; width: 100%; order: 3; }
+      .content { padding: 8px; }
+      .card { padding: 14px; border-radius: 8px; }
+      .chart-container { min-height: 200px; }
+      .data-legend-grid { grid-template-columns: repeat(2, 1fr); padding: 8px; gap: 6px; }
+      .legend-val { font-size: 12px; }
+    }
+
+    /* 円グラフ下部・色付き■のスタイル設定 */
+    .legend-item-pie { display: flex; align-items: center; justify-content: flex-start; gap: 8px; background: #f8fafc; padding: 10px 14px; border-radius: 8px; border: 1px solid #f1f5f9; }
+    .color-box { font-size: 14px; line-height: 1; }
+    .box-drink { color: #3b82f6; }
+    .box-food { color: #10b981; }
+    .box-course { color: #f59e0b; }
+    .box-others { color: #64748b; }
+    .box-to { color: #ec4899; }
+    .legend-text-group { display: flex; flex-direction: column; }
+
+    /* --- FAB全体の固定配置 --- */
+    .simple-fab-container { position: fixed; bottom: 25px; right: 25px; z-index: 9999; display: flex; flex-direction: column; align-items: flex-end; font-family: sans-serif; }
+
+    /* メメインの丸型トグルボタン (☰) */
+    .simple-fab-toggle { width: 50px; height: 50px; border: none; border-radius: 50%; background-color: #0d233a; color: #ffffff; font-size: 22px; cursor: pointer; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); display: flex; align-items: center; justify-content: center; outline: none; transition: background-color 0.2s, transform 0.1s; -webkit-tap-highlight-color: transparent; }
+    .simple-fab-toggle:active { transform: scale(0.92); }
+
+    /* 収納されるメニューのコンテナ（最初は非表示） */
+    .simple-fab-options { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; margin-bottom: 12px; opacity: 0; visibility: hidden; transform: translateY(10px); transition: all 0.2s ease; }
+
+    /* 開いたときのスタイル */
+    .simple-fab-options.open { opacity: 1; visibility: visible; transform: translateY(0); }
+
+    /* 文字だけのカプセル型リンクボタン */
+    .simple-fab-link { display: block; background-color: #ffffff; color: #333333 !important; text-decoration: none !important; padding: 10px 20px; border-radius: 22px; font-size: 13px; font-weight: bold; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2); border: 1px solid #e0e0e0; white-space: nowrap; text-align: center; transition: background-color 0.2s; -webkit-tap-highlight-color: transparent; }
+    .simple-fab-link:active { background-color: #f1f3f5; }
+  </style>
+</head>
+<body>
+
+  <header class="header">
+    <button class="back-btn" onclick="goBackToDashboard()">⇦</button>
+    <div style="font-weight:bold; font-size: 15px;">チャート分析</div>
+    <div style="width: 45px;"></div>
+  </header>
+  
+  <div class="search-bar">
+    <div class="select-group">
+      <select id="storeSelector"></select>
+    </div>
+    <div class="select-group">
+      <input type="month" id="monthPicker" style="height:34px; border:1px solid #cbd5e1; border-radius:6px; padding:0 8px; font-family:inherit;">
+    </div>
+    <button class="search-btn" onclick="loadTrendData()">検索</button>
+    <div id="statusLabel" class="status-area">表示中：-</div>
+  </div>
+
+  <div class="content">
+    <div class="card">
+      <div class="card-title">売上高・支出 推移（日別）</div>
+      <div class="chart-container">
+        <canvas id="lineChart"></canvas>
+      </div>
+      <div class="data-legend-grid">
+        <div class="legend-item">
+          <span class="legend-label">期間売上合計</span>
+          <span id="totalSalesVal" class="legend-val" style="color:#2563eb;">¥0</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-label">期間支出合計</span>
+          <span id="totalCostVal" class="legend-val" style="color:#ef4444;">¥0</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">売上構成比（カテゴリー別内訳）</div>
+      <div class="chart-container pie-container">
+        <canvas id="doughnutChart"></canvas>
+      </div>
+      <div class="data-legend-grid" id="pieLegendGrid" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));">
+        <div class="legend-item-pie">
+          <span class="color-box box-drink">■</span>
+          <div class="legend-text-group">
+            <span class="legend-label" style="text-align:left;">ドリンク</span>
+            <span id="breakdownDrink" class="legend-val">¥0</span>
+          </div>
+        </div>
+        <div class="legend-item-pie">
+          <span class="color-box box-food">■</span>
+          <div class="legend-text-group">
+            <span class="legend-label" style="text-align:left;">フード</span>
+            <span id="breakdownFood" class="legend-val">¥0</span>
+          </div>
+        </div>
+        <div class="legend-item-pie">
+          <span class="color-box box-course">■</span>
+          <div class="legend-text-group">
+            <span class="legend-label" style="text-align:left;">コース</span>
+            <span id="breakdownCourse" class="legend-val">¥0</span>
+          </div>
+        </div>
+        <div class="legend-item-pie">
+          <span class="color-box box-others">■</span>
+          <div class="legend-text-group">
+            <span class="legend-label" style="text-align:left;">その他</span>
+            <span id="breakdownOthers" class="legend-val">¥0</span>
+          </div>
+        </div>
+        <div class="legend-item-pie">
+          <span class="color-box box-to">■</span>
+          <div class="legend-text-group">
+            <span class="legend-label" style="text-align:left;">テイクアウト</span>
+            <span id="breakdownTo" class="legend-val">¥0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">曜日別 傾向分析（日曜日〜土曜日）</div>
+      <div class="chart-container">
+        <canvas id="dayOfWeekChart"></canvas>
+      </div>
+      <div class="table-responsive" style="overflow-x:auto; background:#f8fafc; border-radius:8px; padding:8px;">
+        <table style="width:100%; border-collapse:collapse; font-size:11px; text-align:center;">
+          <thead>
+            <tr style="color:#64748b; border-bottom:1px solid #e2e8f0;">
+              <th style="background:none; padding:6px 2px;">項目</th><th>日</th><th>月</th><th>火</th><th>水</th><th>木</th><th>金</th><th>土</th>
+            </tr>
+          </thead>
+          <tbody id="dayOfWeekTableBody">
+            <tr style="border-bottom:1px dashed #e2e8f0;"><td style="font-weight:bold; color:#2563eb;">売上平均</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+            <tr><td style="font-weight:bold; color:#10b981;">客単価</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="simple-fab-container">
+    <div class="simple-fab-options" id="fabMenuOptions">
+      <a href="monthly_detail.html" class="simple-fab-link">月間サマリー</a>
+      <a href="trend_analysis.html" class="simple-fab-link">チャート分析</a>
+      <a href="daily_list.html" class="simple-fab-link">デイリーリスト一覧</a>
+    </div>
+    <button class="simple-fab-toggle" id="fabToggleBtn" onclick="toggleFabMenu()">☰</button>
+  </div>
+
+  <script>
+    //  設定：公開したGASのWebアプリURLに書き換えてください
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycby5Y6TZVuzYS-H3PfDMaAOvwTi4XqNWM9xVtbp6Zoe9bFfGMQvH_4GLx7CSv-2NexysUg/exec";
+
+    let empNo = sessionStorage.getItem('employeeNumber');
+    let lineChart = null;
+    let doughnutChart = null;
+    let dayOfWeekChart = null;
+
+    // セキュリティチェック
+    if (!empNo) {
+      alert("セッションが切れました。ログイン画面に戻ります。");
+      window.location.href = "login.html"; 
+    }
+
+    // 共通のAPI呼び出し関数
+    async function callGasApi(action, data = {}) {
+      try {
+        const response = await fetch(GAS_API_URL, {
+          method: "POST",
+          mode: "cors",
+          headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify({ action, ...data })
+        });
+        if (!response.ok) throw new Error("ネットワークエラーが発生しました");
+        return await response.json();
+      } catch (error) {
+        console.error(`API通信エラー (${action}):`, error);
+        throw error;
+      }
+    }
+
+    window.onload = async () => {
+      // 初期値として当月をセット
+      const now = new Date();
+      document.getElementById('monthPicker').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+      try {
+        // アクセス可能店舗のプルダウン初期化
+        const stores = await callGasApi("getAccessibleStoreList", { empNo: empNo });
+        const selector = document.getElementById('storeSelector');
+        selector.innerHTML = '';
+        
+        if (stores && stores.length > 0) {
+          stores.forEach(st => {
+            const op = document.createElement('option');
+            op.value = st; op.textContent = st;
+            selector.appendChild(op);
+          });
+          // ホーム画面等での選択中の店舗があれば引き継ぎ
+          const savedStore = sessionStorage.getItem('selectedStore');
+          if (savedStore && stores.includes(savedStore)) {
+            selector.value = savedStore;
+          }
+          loadTrendData();
+        } else {
+          selector.innerHTML = '<option value="">店舗権限なし</option>';
+        }
+      } catch (error) {
+        alert("初期データの取得に失敗しました。");
+      }
+    };
+
+    async function loadTrendData() {
+      const store = document.getElementById('storeSelector').value;
+      const month = document.getElementById('monthPicker').value;
+      if (!store || !month) return;
+
+      // セッションに現在の選択を記憶
+      sessionStorage.setItem('selectedStore', store);
+      document.getElementById('statusLabel').innerText = "読み込み中...";
+
+      try {
+        // GAS側の getTrendAnalysisData を呼び出し
+        const res = await callGasApi("getTrendAnalysisData", { storeName: store, targetMonth: month });
+        document.getElementById('statusLabel').innerText = "表示中：" + month.replace("-", "年") + "月";
+        processAndRender(res, month);
+      } catch (error) {
+        document.getElementById('statusLabel').innerText = "データの読み込みに失敗しました";
+      }
+    }
+
+    function processAndRender(data, monthStr) {
+      const rows = data || [];
+
+      // --- ① 折れ線グラフ用のデータ集計 ---
+      let labels = [];
+      let salesData = [];
+      let costData = []; 
+      let totalSales = 0;
+      let totalCost = 0;
+
+      // --- ② 円グラフ用のデータ集計 ---
+      let dSum = 0, fSum = 0, cSum = 0, oSum = 0, tSum = 0;
+
+      // --- ③ 曜日ごとのデータ集計 ---
+      let wSales = [0,0,0,0,0,0,0], wPeople = [0,0,0,0,0,0,0], wCount = [0,0,0,0,0,0,0];
+
+      rows.forEach(r => {
+        labels.push(r.bussinessday ? r.bussinessday.split('-')[2] + '日' : '');
+        
+        const s = Number(r.sales || 0);
+        const p = Number(r.purchase || 0);
+        const m = Number(r.miscellaneous || 0);
+        const peo = Number(r.people || 0);
+
+        salesData.push(s);
+        costData.push(p + m);
+        totalSales += s;
+        totalCost += (p + m);
+
+        dSum += Number(r.drink || 0);
+        fSum += Number(r.food || 0);
+        cSum += Number(r.course || 0);
+        oSum += Number(r.others || 0);
+        tSum += Number(r.to || 0);
+
+        if (r.bussinessday) {
+          const dObj = new Date(r.bussinessday);
+          const wIdx = dObj.getDay(); 
+          wSales[wIdx] += s;
+          wPeople[wIdx] += peo;
+          wCount[wIdx] += 1; 
+        }
+      });
+
+      // 数値反映
+      document.getElementById('totalSalesVal').innerText = '¥' + totalSales.toLocaleString();
+      document.getElementById('totalCostVal').innerText = '¥' + totalCost.toLocaleString();
+      document.getElementById('breakdownDrink').innerText = '¥' + dSum.toLocaleString();
+      document.getElementById('breakdownFood').innerText = '¥' + fSum.toLocaleString();
+      document.getElementById('breakdownCourse').innerText = '¥' + cSum.toLocaleString();
+      document.getElementById('breakdownOthers').innerText = '¥' + oSum.toLocaleString();
+      document.getElementById('breakdownTo').innerText = '¥' + tSum.toLocaleString();
+
+      // 曜日別平均の算出
+      let wSalesAvg = [], wUnitPrice = [];
+      for (let i = 0; i < 7; i++) {
+        wSalesAvg.push(wCount[i] > 0 ? Math.floor(wSales[i] / wCount[i]) : 0);
+        wUnitPrice.push(wPeople[i] > 0 ? Math.floor(wSales[i] / wPeople[i]) : 0);
+      }
+
+      // 曜日別テーブルの更新
+      const tableBody = document.getElementById('dayOfWeekTableBody');
+      tableBody.innerHTML = `
+        <tr style="border-bottom:1px dashed #e2e8f0;">
+          <td style="font-weight:bold; color:#2563eb; padding:8px 0;">売上平均</td>
+          ${wSalesAvg.map(v => `<td>¥${v.toLocaleString()}</td>`).join('')}
+        </tr>
+        <tr>
+          <td style="font-weight:bold; color:#10b981; padding:8px 0;">客単価</td>
+          ${wUnitPrice.map(v => `<td>¥${v.toLocaleString()}</td>`).join('')}
+        </tr>
+      `;
+
+      const formatToM = (val) => {
+        return (val / 1000000).toFixed(1) + 'M';
+      };
+
+      // ==================== ① 折れ線グラフ描画 ====================
+      const ctxLine = document.getElementById('lineChart').getContext('2d');
+      if (lineChart) lineChart.destroy();
+      lineChart = new Chart(ctxLine, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            { label: '売上', data: salesData, borderColor: '#2563eb', backgroundColor: 'transparent', borderWidth: 2, tension: 0.1 },
+            { label: '支出(変動費+諸経費)', data: costData, borderColor: '#ef4444', backgroundColor: 'transparent', borderWidth: 2, tension: 0.1 }
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } } },
+          scales: {
+            y: { beginAtZero: true, ticks: { font: { size: 10 }, callback: v => '¥' + v.toLocaleString() } },
+            x: { ticks: { font: { size: 10 }, maxTicksLimit: 15 } }
+          }
+        }
+      });
+
+      // ==================== ② ドーナツグラフ描画 ====================
+      const ctxPie = document.getElementById('doughnutChart').getContext('2d');
+      if (doughnutChart) doughnutChart.destroy();
+      
+      doughnutChart = new Chart(ctxPie, {
+        type: 'doughnut',
+        data: {
+          labels: ['ドリンク', 'フード', 'コース', 'その他', 'テイクアウト'],
+          datasets: [{
+            data: [dSum, fSum, cSum, oSum, tSum],
+            backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#64748b', '#ec4899'],
+            borderWidth: 2
+          }]
+        },
+        plugins: [ChartDataLabels, {
+          id: 'centerText',
+          beforeDraw: function(chart) {
+            const width = chart.width, height = chart.height, ctx = chart.ctx;
+            ctx.restore();
+            const fontSize = (height / 140).toFixed(2);
+            ctx.font = "bold " + fontSize + "em sans-serif";
+            ctx.textBaseline = "middle";
+            ctx.fillStyle = "#0f172a";
+            
+            const text = formatToM(totalSales);
+            const textX = Math.round((width - ctx.measureText(text).width) / 2);
+            const textY = height / 2;
+            
+            ctx.fillText(text, textX, textY);
+            ctx.save();
+          }
+        }], 
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          cutout: '70%',
+          plugins: {
+            legend: { display: false },
+            datalabels: {
+              color: '#fff', 
+              font: { weight: 'bold', size: 12 },
+              formatter: (value, ctx) => {
+                let sum = 0;
+                let dataArr = ctx.chart.data.datasets[0].data;
+                dataArr.map(data => { sum += data; });
+                if (sum === 0) return ""; 
+                let percentage = (value * 100 / sum).toFixed(1) + "%";
+                return value > 0 ? percentage : ""; 
+              },
+              anchor: 'center', 
+              align: 'center'
+            }
+          }
+        }
+      });
+
+      // ==================== ③ 曜日別グラフ描画 ====================
+      const ctxDay = document.getElementById('dayOfWeekChart').getContext('2d');
+      if (dayOfWeekChart) dayOfWeekChart.destroy();
+      dayOfWeekChart = new Chart(ctxDay, {
+        data: {
+          labels: ['日', '月', '火', '水', '木', '金', '土'],
+          datasets: [
+            { type: 'line', label: '売上合計推移', data: wSales, borderColor: '#1e3a8a', borderWidth: 2, pointRadius: 4, tension: 0.1, yAxisID: 'ySales' },
+            { type: 'bar', label: '客数合計', data: wPeople, backgroundColor: 'rgba(16, 185, 129, 0.25)', borderColor: '#10b981', borderWidth: 1, yAxisID: 'yPeople' }
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: 'top', labels: { boxWidth: 12, font: { size: 10 } } } },
+          scales: {
+            ySales: { type: 'linear', position: 'left', beginAtZero: true, title: { display: true, text: '売上高', font: { size: 10 } }, ticks: { font: { size: 9 }, callback: v => '¥' + v.toLocaleString() } },
+            yPeople: { type: 'linear', position: 'right', beginAtZero: true, title: { display: true, text: '客数 (人)', font: { size: 10 } }, grid: { display: false }, ticks: { font: { size: 9 } } }
+          }
+        }
+      });
+    }
+
+    function goBackToDashboard() {
+      window.location.href = "index.html";
+    }
+
+    // メニューの開閉を切り替えるシンプルロジック
+    function toggleFabMenu() {
+      const options = document.getElementById('fabMenuOptions');
+      const btn = document.getElementById('fabToggleBtn');
+      
+      options.classList.toggle('open');
+      btn.textContent = options.classList.contains('open') ? '✕' : '☰';
+    }
+  </script>
+</body>
+</html>

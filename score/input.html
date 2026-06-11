@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>日報登録</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: #f4f7fb;
+      padding-bottom: 100px;
+    }
+
+    .input-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      height: 60px;
+      background: #071a3d;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+    }
+
+    .back-btn {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .section-card {
+      background: white;
+      border-radius: 15px;
+      padding: 20px;
+      margin: 15px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .section-title {
+      font-weight: bold;
+      margin-bottom: 15px;
+      border-left: 4px solid #2563eb;
+      padding-left: 10px;
+      color:#334155;
+    }
+
+    .input-group {
+      margin-bottom: 15px;
+    }
+
+    label {
+      font-size: 13px;
+      font-weight: bold;
+      color: #64748b;
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    input,
+    select {
+      width: 100%;
+      height: 45px;
+      border: 1px solid #dbe2ea;
+      border-radius: 8px;
+      padding: 0 10px;
+      box-sizing: border-box;
+    }
+
+    input[readonly] {
+      background-color: #e2e8f0 !important;
+      color: #475569 !important;
+      border: 1px solid #cbd5e1 !important;
+    }
+
+    .input-error {
+      border: 2px solid #ef4444 !important;
+      background: #fef2f2 !important;
+    }
+
+    .save-btn {
+      position: fixed;
+      bottom: 20px;
+      left: 5%;
+      width: 90%;
+      height: 50px;
+      border: none;
+      border-radius: 10px;
+      background: #2563eb;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(255,255,255,0.9);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+      font-weight: bold;
+      color: #2563eb;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="input-header">
+  <button class="back-btn" onclick="goBackToDashboard()">⇦</button>
+  <div>日報登録</div>
+  <div></div>
+</div>
+
+<div class="section-card">
+  <div class="input-group">
+    <label>伝票番号</label>
+    <input type="text" id="slipId" readonly>
+  </div>
+
+  <div class="input-group">
+    <label>入力者</label>
+    <input type="text" id="recorder" readonly>
+  </div>
+
+  <div class="input-group">
+    <label>記録日</label>
+    <input type="text" id="recordDate" readonly>
+  </div>
+
+  <div class="input-group">
+    <label>店舗</label>
+    <select id="store"></select>
+  </div>
+
+  <div class="input-group">
+    <label>営業日</label>
+    <input type="date" id="businessday">
+  </div>
+
+  <div class="input-group">
+    <label>曜日</label>
+    <input type="text" id="dayoftheweek" readonly>
+  </div>
+</div>
+
+<div class="section-card">
+  <div class="section-title">売上情報</div>
+
+  <div class="input-group">
+    <label>ドリンク</label>
+    <input type="text" id="drink" class="req" oninput="f(this);calc();">
+  </div>
+
+  <div class="input-group">
+    <label>フード</label>
+    <input type="text" id="food" class="req" oninput="f(this);calc();">
+  </div>
+
+  <div class="input-group">
+    <label>コース</label>
+    <input type="text" id="course" class="req" oninput="f(this);calc();">
+  </div>
+
+  <div class="input-group">
+    <label>その他</label>
+    <input type="text" id="others" class="req" oninput="f(this);calc();">
+  </div>
+
+  <div class="input-group">
+    <label>テイクアウト</label>
+    <input type="text" id="takeout" class="req" oninput="f(this);calc();">
+  </div>
+
+  <div style="font-weight:bold;font-size:1.2em;color:#1d4ed8;">
+    合計売上：
+    <span id="sales">0</span>
+  </div>
+</div>
+
+<div class="section-card">
+  <div class="section-title">来客情報</div>
+
+  <div class="input-group">
+    <label>組数</label>
+    <input type="text" id="parties" class="req" oninput="f(this)">
+  </div>
+
+  <div class="input-group">
+    <label>人数</label>
+    <input type="text" id="people" class="req" oninput="f(this)">
+  </div>
+
+  <div class="input-group">
+    <label>予約数</label>
+    <input type="text" id="reservation" class="req" oninput="f(this)">
+  </div>
+</div>
+
+<div class="section-card">
+  <div class="section-title">コスト情報</div>
+
+  <div class="input-group">
+    <label>仕入</label>
+    <input type="text" id="purchase" class="req" oninput="f(this)">
+  </div>
+
+  <div class="input-group">
+    <label>経費</label>
+    <input type="text" id="miscellaneous" class="req" oninput="f(this)">
+  </div>
+</div>
+
+<button class="save-btn" onclick="submitData()">保存する</button>
+
+<div id="loadingOverlay" class="loading-overlay">保存中...</div>
+
+<script>
+  //  GASで「ウェブアプリとしてデプロイ」した際に発行されるURLをここに貼り付けてください
+  const GAS_API_URL = "https://script.google.com/macros/s/AKfycby5Y6TZVuzYS-H3PfDMaAOvwTi4XqNWM9xVtbp6Zoe9bFfGMQvH_4GLx7CSv-2NexysUg/exec"; 
+
+  // セキュリティチェック（ブラウザ内のセッションから取得）
+  let empNo = sessionStorage.getItem('employeeNumber');
+
+  if (!empNo) {
+    alert("セッションが切れました。ログイン画面に戻ります。");
+    window.location.href = "login.html"; 
+  }
+
+  window.onload = function(){
+    initializePage();
+  };
+
+  function initializePage(){
+    const now = new Date();
+
+    document.getElementById('slipId').value = 'SLIP-' + Date.now();
+    document.getElementById('recorder').value = sessionStorage.getItem('userName') || '';
+
+    const today = now.toISOString().split('T')[0];
+    document.getElementById('recordDate').value = today;
+    document.getElementById('businessday').value = today;
+    document.getElementById('businessday').max = today;
+    document.getElementById('dayoftheweek').value = ['日','月','火','水','木','金','土'][now.getDay()];
+
+    // 営業日が変更されたら曜日を自動計算する処理
+    document.getElementById('businessday').addEventListener('change', function() {
+      const selectedDateStr = this.value;
+      if (!selectedDateStr) {
+        document.getElementById('dayoftheweek').value = '';
+        return;
+      }
+      
+      const parts = selectedDateStr.split('-');
+      const selectedDate = new Date(parts[0], parts[1] - 1, parts[2]);
+      const dayLabels = ['日','月','火','水','木','金','土'];
+      document.getElementById('dayoftheweek').value = dayLabels[selectedDate.getDay()];
+    });
+
+    loadStores();
+  }
+
+  function loadStores(){
+    // 店舗リスト取得を fetch に書き換え
+    fetch(GAS_API_URL, {
+      method: "POST",
+      mode: "cors",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ action: "getAccessibleStoreList", empNo: empNo })
+    })
+    .then(res => res.json())
+    .then(stores => {
+      const select = document.getElementById('store');
+      select.innerHTML = '';
+
+      const first = document.createElement('option');
+      first.value = '';
+      first.textContent = '店舗を選択';
+      select.appendChild(first);
+
+      stores.forEach(function(store){
+        if(!store) return;
+        const option = document.createElement('option');
+        option.value = store;
+        option.textContent = store;
+        select.appendChild(option);
+      });
+    })
+    .catch(err => {
+      console.error("店舗リスト取得エラー:", err);
+      alert("店舗データの読み込みに失敗しました。");
+    });
+  }
+
+  function f(el){
+    let v = el.value.replace(/[^\d]/g,'');
+    el.value = v ? Number(v).toLocaleString() : '';
+  }
+
+  function getNum(id){
+    return Number(document.getElementById(id).value.replace(/,/g,'')) || 0;
+  }
+
+  function calc(){
+    const total =
+      getNum('drink') +
+      getNum('food') +
+      getNum('course') +
+      getNum('others') +
+      getNum('takeout');
+
+    document.getElementById('sales').innerText = total.toLocaleString();
+  }
+
+  function submitData(){
+    const reqs = document.querySelectorAll('.req');
+    let ok = true;
+
+    reqs.forEach(el => {
+      el.classList.remove('input-error');
+      if(!el.value){
+        el.classList.add('input-error');
+        ok = false;
+      }
+    });
+
+    if(!document.getElementById('store').value){
+      document.getElementById('store').classList.add('input-error');
+      ok = false;
+    }
+
+    if(!ok){
+      alert('未入力項目があります');
+      return;
+    }
+
+    document.getElementById('loadingOverlay').style.display = 'flex';
+
+    const data = {
+      slipId: document.getElementById('slipId').value,
+      recorder: document.getElementById('recorder').value,
+      recordDate: document.getElementById('recordDate').value,
+      store: document.getElementById('store').value,
+      businessday: document.getElementById('businessday').value,
+      dayoftheweek: document.getElementById('dayoftheweek').value,
+      sales: getNum('drink') + getNum('food') + getNum('course') + getNum('others') + getNum('takeout'),
+      drink: getNum('drink'),
+      food: getNum('food'),
+      course: getNum('course'),
+      others: getNum('others'),
+      takeout: getNum('takeout'),
+      parties: getNum('parties'),
+      people: getNum('people'),
+      reservation: getNum('reservation'),
+      purchase: getNum('purchase'),
+      miscellaneous: getNum('miscellaneous')
+    };
+
+    // 日報データ保存を fetch に書き換え
+    fetch(GAS_API_URL, {
+      method: "POST",
+      mode: "cors",
+      headers: { "Content-Type": "text/plain" },
+      body: JSON.stringify({ action: "saveDailyReport", data: data })
+    })
+    .then(res => res.json())
+    .then(result => {
+      // もしGAS側からエラーレスポンス(例: {success: false, message: "..."})が返る設計の場合はエラーをスロー
+      if (result && result.success === false) {
+        throw new Error(result.message || "保存に失敗しました");
+      }
+      alert('保存しました');
+      goBackToDashboard();
+    })
+    .catch(err => {
+      document.getElementById('loadingOverlay').style.display = 'none';
+      alert(err.message || "通信エラーが発生しました");
+    });
+  }
+
+  function goBackToDashboard() {
+    window.location.href = "index.html";
+  }
+</script>
+
+</body>
+</html>

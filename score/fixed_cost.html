@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>固定費設定マスタ</title>
+  
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; background: #f4f7fb; color: #333; }
+    .header { height: 68px; background: linear-gradient(90deg, #071a3d, #0b2b63); display: flex; align-items: center; justify-content: space-between; padding: 0 18px; color: white; }
+    .back-btn { border: none; background: none; color: white; font-size: 18px; cursor: pointer; }
+    .content { padding: 20px; max-width: 650px; margin: 0 auto; padding-bottom: 120px; }
+    .card { background: white; border-radius: 16px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 20px; }
+    .title { font-size: 18px; font-weight: bold; margin-bottom: 15px; }
+    
+    /* 店舗選択エリア */
+    .store-select-box { display: flex; flex-direction: column; margin-bottom: 20px; }
+    .store-select-box label { font-size: 14px; font-weight: bold; color: #475569; margin-bottom: 6px; }
+    .store-select-box select { height: 44px; border-radius: 10px; border: 1px solid #cbd5e1; padding: 0 12px; font-size: 16px; font-weight: bold; background-color: #fff; }
+    
+    .cost-row { display: flex; gap: 10px; margin-bottom: 12px; align-items: center; }
+    input[type="text"] { flex: 2; height: 40px; border-radius: 8px; border: 1px solid #cbd5e1; padding: 0 12px; font-size: 15px; }
+    input[type="number"] { flex: 1; height: 40px; border-radius: 8px; border: 1px solid #cbd5e1; padding: 0 12px; font-size: 15px; text-align: right; }
+    .del-btn { background: #ef4444; color: white; border: none; height: 40px; width: 70px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+    .add-btn { background: #f1f5f9; color: #334155; border: 1px dashed #cbd5e1; width: 100%; height: 44px; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+    .total-box { margin-top: 20px; padding: 15px; background: #f8fafc; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; border: 1px solid #e2e8f0; }
+    .save-bar { position: fixed; bottom: 0; left: 0; width: 100%; height: 80px; background: rgba(244,247,251,0.9); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 90; }
+    .save-btn { width: 85%; max-width: 400px; height: 50px; background: #1e3a8a; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <button class="back-btn" onclick="goBackToDashboard()">⇦</button>
+    <div style="font-weight:bold;">固定費設定マスタ</div>
+    <div></div>
+  </header>
+  
+  <div class="content">
+    <div class="card">
+      <div class="store-select-box" style="margin-bottom: 15px;">
+        <label>設定対象の店舗を選択</label>
+        <select id="storeSelector" onchange="loadFixedCosts()"></select>
+      </div>
+      
+      <div class="store-select-box">
+        <label>設定対象の月を選択</label>
+        <select id="monthSelector" onchange="loadFixedCosts()"></select>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="title"> 固定費項目・金額設定</div>
+      <div id="costListContainer"></div>
+      <button class="add-btn" onclick="addNewRow()">＋ 項目を追加する</button>
+      
+      <div class="total-box">
+        <span>固定費 合計額</span>
+        <span id="totalCostDisplay" style="color:#1d4ed8; font-size:20px;">¥0</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="save-bar">
+    <button class="save-btn" onclick="validateAndSave()">この月の変更を登録・保存する</button>
+  </div>
+
+  <script>
+    //  GASで「ウェブアプリとしてデプロイ」した際に発行されるURLをここに貼り付けてください
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycby5Y6TZVuzYS-H3PfDMaAOvwTi4XqNWM9xVtbp6Zoe9bFfGMQvH_4GLx7CSv-2NexysUg/exec"; 
+
+    // セキュリティチェック（ブラウザ内のセッションから取得）
+    let empNo = sessionStorage.getItem('employeeNumber');
+
+    if (!empNo) {
+        alert("セッションが切れました。ログイン画面に戻ります。");
+        window.location.href = "login.html"; 
+    }
+
+    window.onload = function() {
+      // 月プルダウンの動的生成（当月を中心に過去・未来の選択肢を作る）
+      initMonthSelector();
+
+      // 店舗一覧の取得を fetch に書き換え
+      fetch(GAS_API_URL, {
+        method: "POST",
+        mode: "cors",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({ action: "getAllStoreMasterList" })
+      })
+      .then(res => res.json())
+      .then(stores => {
+        const selector = document.getElementById('storeSelector');
+        selector.innerHTML = '';
+        if(!stores || stores.length === 0) {
+          selector.innerHTML = '<option value="">店舗マスタがありません</option>';
+          return;
+        }
+        stores.forEach(st => {
+          if(!st) return;
+          const opt = document.createElement('option');
+          opt.value = st;
+          opt.innerText = st;
+          selector.appendChild(opt);
+        });
+        
+        // 店舗と月が揃ったらロード
+        loadFixedCosts();
+      })
+      .catch(err => {
+        console.error("店舗マスタ取得エラー:", err);
+        alert("店舗データの読み込みに失敗しました。");
+      });
+    };
+
+    // 月の選択肢を生成する関数（2026年を中心に前後数ヶ月を自動生成）
+    function initMonthSelector() {
+      const selector = document.getElementById('monthSelector');
+      selector.innerHTML = '';
+      
+      const today = new Date();
+      const currentYear = today.getFullYear();
+      const currentMonth = today.getMonth(); // 0 = 1月
+
+      // 前後6ヶ月分の選択肢を生成
+      for (let i = -6; i <= 6; i++) {
+        const d = new Date(currentYear, currentMonth + i, 1);
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const valueStr = `${yyyy}-${mm}`; // スプシ保存用 (例: 2026-06)
+        
+        const opt = document.createElement('option');
+        opt.value = valueStr;
+        opt.innerText = `${yyyy}年${mm}月`;
+        
+        if (i === 0) opt.selected = true;
+        
+        selector.appendChild(opt);
+      }
+    }
+
+    // 店舗 or 月切り替え時にデータを取得
+    function loadFixedCosts() {
+      const selectedStore = document.getElementById('storeSelector').value;
+      const selectedMonth = document.getElementById('monthSelector').value;
+      if(!selectedStore || !selectedMonth) return;
+
+      const container = document.getElementById('costListContainer');
+      container.innerHTML = '<div style="text-align:center; padding:20px; color:#64748b;">データを読み込み中...</div>';
+
+      // 固定費データの取得を fetch に書き換え
+      fetch(GAS_API_URL, {
+        method: "POST",
+        mode: "cors",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({ 
+          action: "getFixedCostsForStore", 
+          storeName: selectedStore, 
+          targetMonth: selectedMonth 
+        })
+      })
+      .then(res => res.json())
+      .then(list => {
+        container.innerHTML = '';
+        if(list && Array.isArray(list)) {
+          list.forEach(item => {
+            createRowElement(item.name, item.cost);
+          });
+        }
+        calculateTotal();
+      })
+      .catch(err => {
+        console.error("固定費データ取得エラー:", err);
+        container.innerHTML = '<div style="text-align:center; padding:20px; color:red;">データの読み込みに失敗しました。</div>';
+      });
+    }
+
+    function createRowElement(name = '', cost = 0) {
+      const container = document.getElementById('costListContainer');
+      const div = document.createElement('div');
+      div.className = 'cost-row';
+      div.innerHTML = `
+        <input type="text" class="cost-name" placeholder="項目名" value="${name}">
+        <input type="number" class="cost-val" placeholder="金額" value="${cost}" oninput="calculateTotal()">
+        <button class="del-btn" onclick="removeRow(this)">Delete</button>
+      `;
+      container.appendChild(div);
+    }
+
+    function addNewRow() {
+      createRowElement('', 0);
+    }
+
+    function removeRow(btn) {
+      btn.parentElement.remove();
+      calculateTotal();
+    }
+
+    function calculateTotal() {
+      let total = 0;
+      document.querySelectorAll('.cost-val').forEach(input => {
+        total += Number(input.value) || 0;
+      });
+      document.getElementById('totalCostDisplay').innerText = `¥${total.toLocaleString()}`;
+    }
+
+    function validateAndSave() {
+      const selectedStore = document.getElementById('storeSelector').value;
+      const selectedMonth = document.getElementById('monthSelector').value;
+      if(!selectedStore || !selectedMonth) {
+        alert('店舗または月が選択されていません。');
+        return;
+      }
+
+      const msg = `【固定費の登録】\n「${selectedStore}」の【${selectedMonth}】の固定費を設定します。\n\nこの月の「営業純利益」や「損益分岐点」の計算データのみが、新しい設定を基準として更新されます。\n\nよろしければ『OK』を押してください。`;
+      if (!confirm(msg)) return;
+
+      const costList = [];
+      const rows = document.querySelectorAll('.cost-row');
+      
+      rows.forEach(row => {
+        const name = row.querySelector('.cost-name').value.trim();
+        const cost = row.querySelector('.cost-val').value;
+        if(name !== "") {
+          costList.push({ name: name, cost: Number(cost) || 0 });
+        }
+      });
+
+      // 固定費データの保存を fetch に書き換え
+      fetch(GAS_API_URL, {
+        method: "POST",
+        mode: "cors",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({ 
+          action: "saveFixedCostsForStore", 
+          storeName: selectedStore, 
+          targetMonth: selectedMonth, 
+          costList: costList 
+        })
+      })
+      .then(res => res.json())
+      .then(res => {
+        alert(`${selectedStore} の ${selectedMonth} 分の固定費設定を保存しました。`);
+        loadFixedCosts(); 
+      })
+      .catch(err => {
+        console.error("固定費保存エラー:", err);
+        alert("保存中にエラーが発生しました。");
+      });
+    }
+
+    function goBackToDashboard() {
+      window.location.href = "index.html";
+    }
+  </script>
+</body>
+</html>

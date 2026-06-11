@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ユーザー権限・店舗管理</title>
+
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; background: #f4f7fb; color: #333; -webkit-text-size-adjust: 100%; }
+    .header { height: 60px; background: linear-gradient(90deg, #071a3d, #0b2b63); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .back-btn { border: none; background: none; color: white; font-size: 16px; cursor: pointer; padding: 8px 4px; display: flex; align-items: center; }
+    .content { padding: 12px; max-width: 900px; margin: 0 auto; }
+    .card { background: white; border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .title { font-size: 16px; font-weight: bold; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+    
+    /* PC用テーブルスタイル */
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e2e8f0; vertical-align: middle; }
+    th { background: #f8fafc; color: #475569; font-weight: 600; white-space: nowrap; }
+    
+    /* フォーム・コントロール */
+    select { height: 38px; border-radius: 6px; border: 1px solid #cbd5e1; padding: 0 12px 0 8px; font-size: 14px; background-color: #fff; width: 100%; max-width: 240px; box-sizing: border-box; }
+    .badge-container { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+    .store-badge { background: #eff6ff; color: #1d4ed8; padding: 6px 10px; border-radius: 6px; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; font-weight: bold; box-shadow: 0 1px 2px rgba(0,0,0,0.02); }
+    .remove-badge-btn { background: none; border: none; color: #ef4444; cursor: pointer; font-weight: bold; font-size: 14px; padding: 2px 6px; margin-right: -4px; }
+    .add-access-row { display: flex; gap: 6px; }
+
+    /* 📱 モバイル用レスポンシブスタイル (画面幅600px以下) */
+    @media (max-width: 600px) {
+      .header { height: 56px; padding: 0 12px; }
+      .content { padding: 8px; }
+      .card { padding: 12px; border-radius: 8px; }
+      
+      /* テーブルを非表示にしてカード型に再構築 */
+      table, thead, tbody, th, td, tr { display: block; width: 100%; box-sizing: border-box; }
+      thead { display: none; } /* ヘッダーを非表示 */
+      
+      tr { border-bottom: 2px solid #e2e8f0; padding: 16px 4px; background: #fff; }
+      tr:last-child { border-bottom: none; }
+      
+      td { border-bottom: none; padding: 6px 0; position: relative; display: flex; flex-direction: column; align-items: flex-start; }
+      
+      /* スマホ時の各項目の見出しを擬似要素で追加 */
+      td::before { content: attr(data-label); font-size: 11px; color: #64748b; font-weight: 600; margin-bottom: 4px; display: block; }
+      
+      /* 強調と配置のスマホ最適化 */
+      td strong { font-size: 16px; color: #0f172a; }
+      select { max-width: 100%; width: 100%; height: 42px; } /* タップしやすく少し太く */
+      .store-badge { font-size: 14px; padding: 8px 12px; } /* タップしやすく */
+      .add-access-row { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <button class="back-btn" onclick="goBackToDashboard()">⇦</button>
+    <div style="font-weight:bold;">ユーザー権限・店舗管理</div>
+    <div></div>
+  </header>
+  
+  <div class="content">
+    <div class="card">
+      <div class="title">権限・アクセス権設定</div>
+      <div style="overflow-x: auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>社員番号</th>
+              <th>氏名</th>
+              <th>権限ロール</th>
+              <th>アクセス可能店舗</th>
+            </tr>
+          </thead>
+          <tbody id="userTableBody">
+            <tr><td colspan="4" style="text-align:center;">データを読み込み中...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // GASで「ウェブアプリとしてデプロイ」した際に発行されるURLをここに貼り付けてください
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycby5Y6TZVuzYS-H3PfDMaAOvwTi4XqNWM9xVtbp6Zoe9bFfGMQvH_4GLx7CSv-2NexysUg/exec"; 
+
+    // セキュリティチェック（ブラウザ内のセッションから取得）
+    let empNo = sessionStorage.getItem('employeeNumber');
+
+    if (!empNo) {
+      alert("セッションが切れました。ログイン画面に戻ります。");
+      window.location.href = "login.html"; 
+    }
+
+    let storeMaster = [];
+
+    window.onload = function() {
+      // 最初に対象全店舗マスタを引っ張る
+      fetch(GAS_API_URL, {
+        method: "POST",
+        mode: "cors",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({ action: "getAllStoreMasterList" })
+      })
+      .then(res => res.json())
+      .then(stores => {
+        storeMaster = stores;
+        loadPermissions();
+      })
+      .catch(err => {
+        console.error("店舗マスタ取得エラー:", err);
+        alert("店舗マスタの読み込みに失敗しました。");
+      });
+    };
+
+    function loadPermissions() {
+      fetch(GAS_API_URL, {
+        method: "POST",
+        mode: "cors",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({ action: "getPermissionData" })
+      })
+      .then(res => res.json())
+      .then(users => {
+        const tbody = document.getElementById('userTableBody');
+        tbody.innerHTML = '';
+        
+        users.forEach(user => {
+          const tr = document.createElement('tr');
+          
+          // 店舗プルダウンの選択肢生成
+          let storeOptions = '<option value="">--店舗追加--</option>';
+          storeMaster.forEach(st => {
+            if(!st) return;
+            storeOptions += `<option value="${st}">${st}</option>`;
+          });
+
+          // バッジの生成
+          let badges = '';
+          if (user.stores && Array.isArray(user.stores)) {
+            user.stores.forEach(st => {
+              if(!st) return;
+              badges += `
+                <span class="store-badge">
+                  ${st}
+                  <button class="remove-badge-btn" onclick="deleteAccess('${user.empNumber}', '${st}')">✕</button>
+                </span>
+              `;
+            });
+          }
+
+          // 📱 スマホ表示用に見出し（data-label）をtdへ追加して組み立て
+          tr.innerHTML = `
+            <td data-label="社員番号">${user.empNumber}</td>
+            <td data-label="氏名"><strong>${user.name}</strong></td>
+            <td data-label="権限ロール">
+              <select onchange="changeRole('${user.empNumber}', this.value)">
+                <option value="admin" ${user.role === 'admin' ? 'selected' : ''}>admin (管理者)</option>
+                <option value="editor" ${user.role === 'editor' ? 'selected' : ''}>editor (編集者)</option>
+                <option value="viewer" ${user.role === 'viewer' ? 'selected' : ''}>viewer (閲覧のみ)</option>
+              </select>
+            </td>
+            <td data-label="アクセス可能店舗">
+              <div class="badge-container">${badges}</div>
+              <div class="add-access-row">
+                <select onchange="addAccess('${user.empNumber}', this.value); this.value='';">
+                  ${storeOptions}
+                </select>
+              </div>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      })
+      .catch(err => {
+        console.error("権限データ取得エラー:", err);
+        const tbody = document.getElementById('userTableBody');
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:red;">データの読み込みに失敗しました。</td></tr>';
+      });
+    }
+
+    function changeRole(empNumber, newRole) {
+      fetch(GAS_API_URL, {
+        method: "POST",
+        mode: "cors",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({ action: "updateUserRole", empNo: empNumber, role: newRole })
+      })
+      .then(res => res.json())
+      .then(success => {
+        if(success) {
+          console.log('Role updated');
+        } else {
+          alert("権限の更新に失敗しました。");
+        }
+      })
+      .catch(err => {
+        console.error("権限更新エラー:", err);
+        alert("通信エラーが発生しました。");
+      });
+    }
+
+    function addAccess(empNumber, storeName) {
+      if(!storeName) return;
+      fetch(GAS_API_URL, {
+        method: "POST",
+        mode: "cors",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({ action: "addStoreAccess", empNo: empNumber, storeName: storeName })
+      })
+      .then(res => res.json())
+      .then(res => {
+        if(!res.success) {
+          alert(res.message);
+        }
+        loadPermissions();
+      })
+      .catch(err => {
+        console.error("店舗追加エラー:", err);
+        alert("通信エラーが発生しました。");
+        loadPermissions();
+      });
+    }
+
+    function deleteAccess(empNumber, storeName) {
+      if(!confirm(`${storeName} のアクセス権を削除しますか？`)) return;
+      fetch(GAS_API_URL, {
+        method: "POST",
+        mode: "cors",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({ action: "removeStoreAccess", empNo: empNumber, storeName: storeName })
+      })
+      .then(res => res.json())
+      .then(() => {
+        loadPermissions();
+      })
+      .catch(err => {
+        console.error("店舗削除エラー:", err);
+        alert("通信エラーが発生しました。");
+        loadPermissions();
+      });
+    }
+
+    function goBackToDashboard() {
+      window.location.href = "index.html";
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SCOREについて・ヘルプ</title>
+  
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; line-height: 1.6; color: #334155; background: #f4f7fb; margin: 0; }
+    .content { max-width: 650px; margin: 0 auto; padding-bottom: 40px; }
+    .card { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    h2 { color: #071a3d; border-bottom: 2px solid #071a3d; padding-bottom: 10px; margin-top: 0; font-size: 22px; }
+    .step { margin-bottom: 25px; border-bottom: 1px solid #f1f5f9; padding-bottom: 15px; }
+    .step:last-of-type { border-bottom: none; padding-bottom: 0; }
+    h3 { color: #2563eb; margin-bottom: 8px; font-size: 16px; font-weight: bold; }
+    p { margin: 6px 0; font-size: 14px; color: #475569; }
+    .back-btn { display: block; margin-top: 30px; padding: 15px; text-align: center; background: #071a3d; color: white; text-decoration: none; border-radius: 10px; font-weight: bold; border: none; width: 100%; font-size: 16px; cursor: pointer; box-shadow: 0 4px 12px rgba(7, 26, 61, 0.2); }
+    .back-btn:hover { background: #0b2b63; }
+  </style>
+</head>
+<body>
+  <div class="content">
+    <div class="card">
+      <h2>SCOREについて・ヘルプ</h2>
+      
+      <div class="step">
+        <h3>① 月間サマリー</h3>
+        <p>各月の数字の合計値や平均値をまとめたカードです。</p>
+      </div>
+      
+      <div class="step">
+        <h3>② チャート分析</h3>
+        <p>各月の項目ごとのグラフやチャートを確認できます。</p>
+      </div>
+      
+      <div class="step">
+        <h3>③ デイリーリスト一覧</h3>
+        <p>登録データを確認できる。データがない日は「未入力」と表示されます。</p>
+      </div>
+
+      <div class="step">
+        <h3>④ ユーザ権限</h3>
+        <p>（1）<strong>admin</strong>: 全ユーザの店舗アクセス権を操作でき、固定費登録も可能、（メニュー/設定）日報の登録、編集も可能</p>
+        <p>（2）<strong>editor</strong>: 店舗アクセス権限内で日報登録、編集が可能</p>
+        <p>（3）<strong>viewer</strong>: 店舗アクセス権限内で各種閲覧が可能</p>
+      </div>
+
+      <div class="step">
+        <h3>⑤ 店舗アクセス権</h3>
+        <p>ユーザごとに店舗へのアクセス権が割り振られ、その範囲内で操作が可能です。</p>
+      </div> 
+
+      <div class="step">
+        <h3>⑥ 日報登録</h3>
+        <p>（1）ホーム画面下部ナビゲーションより、”日報を登録する”またはメニュー上部〔三〕より日報登録（メニュー/日報登録）を選択し、フォーム画面へ</p>
+        <p>（2）店舗、営業日を選択し、各種項目を入力する</p>
+        <p>（※）数値入力については記号を含まない半角数字（マイナス不可）で入力してください</p>
+        <p>（※）項目に入力必要性がない場合は”0”を入力してください</p>
+        <p>（※）保存後の編集はスコアカード一覧、該当伝票の詳細ボタンより編集をおこなってください</p>
+      </div> 
+
+      <div class="step">
+        <h3>⑦ パスワード変更</h3>
+        <p>（1）現在ログイン中のパスワードを入力</p>
+        <p>（2）新しく発行するパスワードを入力</p>
+      </div> 
+
+      <div class="step">
+        <h3>⑧ 権限変更・店舗アクセス変更</h3>
+        <p>（1）ユーザ権限や店舗のアクセス権の変更は管理者権限ユーザのみおこなえます。必要な場合は管理者ユーザまで連絡してください。</p>
+        <p>（2）管理者ユーザが不明、または存在しない場合は開発担当者までご連絡ください。</p>
+        <p style="margin-top: 10px; padding: 10px; background: #f8fafc; border-radius: 6px; font-weight: bold;">
+          @SCORE開発担当者: 山下晃生（kouki.y1208@icloud.com）
+        </p>
+      </div> 
+
+      <button class="back-btn" onclick="goBackToDashboard()">⇦ ホームに戻る</button>
+    </div>
+  </div>
+
+  <script>
+    // セキュリティチェック（ブラウザ内のセッションから取得）
+    let empNo = sessionStorage.getItem('employeeNumber');
+
+    if (!empNo) {
+      alert("セッションが切れました。ログイン画面に戻ります。");
+      window.location.href = "login.html"; 
+    }
+
+    function goBackToDashboard() {
+      window.location.href = "index.html";
+    }
+  </script>
+</body>
+</html>
