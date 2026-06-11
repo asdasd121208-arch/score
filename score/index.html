@@ -335,7 +335,7 @@
       const targetMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
 
       // 2. 月間サマリー取得を fetch に書き換え
-      fetch(GAS_API_URL, {
+     fetch(GAS_API_URL, {
         method: "POST",
         mode: "cors",
         headers: { "Content-Type": "text/plain" },
@@ -343,19 +343,15 @@
       })
       .then(res => res.json())
       .then(stats => {
-        const mSales = document.getElementById('mSales');
-        if(mSales) mSales.innerText = `¥${stats.sales.toLocaleString()}`;
+        // データがnullかもしれないので守る
+        const s = stats || {}; 
         
-        const mVariable = document.getElementById('mVariable');
-        if(mVariable) mVariable.innerText = `¥${(stats.variableCost || 0).toLocaleString()}`;
+        document.getElementById('mSales').innerText = `¥${Number(s.sales || 0).toLocaleString()}`;
+        document.getElementById('mVariable').innerText = `¥${Number(s.variableCost || 0).toLocaleString()}`;
+        document.getElementById('mFixed').innerText = `¥${Number(s.fixedCost || 0).toLocaleString()}`;
+        document.getElementById('mExpenses').innerText = `¥${Number(s.expenses || 0).toLocaleString()}`;
         
-        const mFixed = document.getElementById('mFixed');
-        if(mFixed) mFixed.innerText = `¥${(stats.fixedCost || 0).toLocaleString()}`;
-        
-        const mExpenses = document.getElementById('mExpenses');
-        if(mExpenses) mExpenses.innerText = `¥${(stats.expenses || 0).toLocaleString()}`;
-        
-        const profit = stats.sales - (stats.variableCost || 0) - (stats.fixedCost || 0) - (stats.expenses || 0);
+        const profit = Number(s.sales || 0) - Number(s.variableCost || 0) - Number(s.fixedCost || 0) - Number(s.expenses || 0);
         const profitEl = document.getElementById('mProfit');
         if(profitEl) {
             profitEl.innerText = `¥${profit.toLocaleString()}`;
@@ -365,7 +361,7 @@
       .catch(err => console.error("サマリー取得エラー:", err));
 
       // 3. グラフとデイリーリスト取得を fetch に書き換え
-      fetch(GAS_API_URL, {
+    fetch(GAS_API_URL, {
         method: "POST",
         mode: "cors",
         headers: { "Content-Type": "text/plain" },
@@ -373,24 +369,29 @@
       })
       .then(res => res.json())
       .then(res => {
-        renderSalesChart(res.labels, res.sales);
+        // データがない場合に備えて空配列にする
+        const labels = res.labels || [];
+        const salesData = res.sales || [];
+        const scorecard = res.scorecard || [];
+
+        renderSalesChart(labels, salesData);
         
         const tbody = document.getElementById('scoreCardBody');
         if(tbody) {
             tbody.innerHTML = '';
-            res.scorecard.forEach(item => {
+            scorecard.forEach(item => {
               const tr = document.createElement('tr');
-              const isNoData = item.sales === "未入力";
+              const isNoData = item.sales === "未入力" || !item.sales;
               
               let d = item.date.replace(/\(Sun\)/g, '(日)').replace(/\(Mon\)/g, '(月)').replace(/\(Tue\)/g, '(火)')
-                               .replace(/\(Wed\)/g, '(水)').replace(/\(Thu\)/g, '(木)').replace(/\(Fri\)/g, '(金)').replace(/\(Sat\)/g, '(土)');
+                                 .replace(/\(Wed\)/g, '(水)').replace(/\(Thu\)/g, '(木)').replace(/\(Fri\)/g, '(金)').replace(/\(Sat\)/g, '(土)');
               
               tr.innerHTML = `
                 <td>${d}</td>
-                <td data-label="売上" style="${isNoData ? 'color:#94a3b8;' : ''}">${isNoData ? '未入力' : '¥' + item.sales}</td>
-                <td data-label="営業利益" style="${isNoData ? 'color:#94a3b8;' : ''}">${isNoData ? '未入力' : '¥' + item.profit}</td>
-                <td data-label="客数" style="${isNoData ? 'color:#94a3b8;' : ''}">${isNoData ? '未入力' : item.customers + '人'}</td>
-                <td data-label="客単価" style="${isNoData ? 'color:#94a3b8;' : ''}">${isNoData ? '未入力' : '¥' + item.unitPrice}</td>
+                <td data-label="売上" style="${isNoData ? 'color:#94a3b8;' : ''}">${isNoData ? '未入力' : '¥' + Number(item.sales || 0).toLocaleString()}</td>
+                <td data-label="営業利益" style="${isNoData ? 'color:#94a3b8;' : ''}">${isNoData ? '未入力' : '¥' + Number(item.profit || 0).toLocaleString()}</td>
+                <td data-label="客数" style="${isNoData ? 'color:#94a3b8;' : ''}">${isNoData ? '未入力' : Number(item.customers || 0).toLocaleString() + '人'}</td>
+                <td data-label="客単価" style="${isNoData ? 'color:#94a3b8;' : ''}">${isNoData ? '未入力' : '¥' + Number(item.unitPrice || 0).toLocaleString()}</td>
               `;
               tbody.appendChild(tr);
             });
