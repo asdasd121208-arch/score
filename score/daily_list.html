@@ -209,7 +209,8 @@
 const params = new URLSearchParams(window.location.search);
 
 // 2. 変数 empNo を全体のどこからでも使えるように宣言（URLかSessionから取得）
-let empNo = params.get('empNo') || sessionStorage.getItem('employeeNumber');
+// let empNo = params.get('empNo') || sessionStorage.getItem('employeeNumber');
+       let empNo = sessionStorage.getItem('employeeNumber');
 
 // 3. URLにパラメータがあれば、セッションストレージを復元
 if (empNo && params.get('empNo')) {
