@@ -291,7 +291,6 @@ function loadDailyData() {
     // GAS_API_URL を使用し、action を追加してリクエスト
     fetch(GAS_API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'getDailyListData', store, month })
     })
     .then(res => {
@@ -368,7 +367,6 @@ function saveData() {
     // GAS_API_URL を使用し、action を追加してリクエスト
     fetch(GAS_API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'updateDailyData', data, empNo: sessionStorage.getItem('employeeNumber') })
     })
     .then(res => {
@@ -421,7 +419,6 @@ window.onload = () => {
     // ユーザー権限チェックAPI呼び出し (GAS_API_URL)
     fetch(GAS_API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'checkUserPermission', empNo })
     })
     .then(res => res.json())
@@ -431,7 +428,6 @@ window.onload = () => {
     // アクセス可能店舗一覧API呼び出し (GAS_API_URL)
     fetch(GAS_API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'getAccessibleStoreList', empNo })
     })
     .then(res => res.json())
