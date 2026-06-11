@@ -196,9 +196,9 @@
 
   <div class="simple-fab-container">
     <div class="simple-fab-options" id="fabMenuOptions">
-      <a href="?page=MonthlyDetail" class="simple-fab-link">月間サマリー</a>
-      <a href="?page=TrendAnalysis" class="simple-fab-link">チャート分析</a>
-      <a href="?page=DailyList" class="simple-fab-link">デイリーリスト一覧</a>
+      <a href="monthly_detail" class="simple-fab-link">月間サマリー</a>
+      <a href="trend_analysis" class="simple-fab-link">チャート分析</a>
+      <a href="daily_list" class="simple-fab-link">デイリーリスト一覧</a>
     </div>
     <button class="simple-fab-toggle" id="fabToggleBtn" onclick="toggleFabMenu()">☰</button>
   </div>
@@ -208,19 +208,18 @@
 // 1. URLパラメータを取得
 const params = new URLSearchParams(window.location.search);
 
-// 2. 変数 empNo を全体のどこからでも使えるように宣言（URLかSessionから取得）
-// let empNo = params.get('empNo') || sessionStorage.getItem('employeeNumber');
-       let empNo = sessionStorage.getItem('employeeNumber');
-
-// 3. URLにパラメータがあれば、セッションストレージを復元
-if (empNo && params.get('empNo')) {
-    sessionStorage.setItem('employeeNumber', empNo);
+// 2. 変数 empNo を取得（"undefined" などの不正文字列も弾く）
+let empNo = params.get('empNo') || sessionStorage.getItem('employeeNumber');
+if (empNo === "undefined" || empNo === "null") {
+    empNo = null;
 }
 
-// 4. セキュリティチェック（どちらにも社員番号がなければ弾く）
+// 3. セキュリティチェック
 if (!empNo) {
     alert("セッションが切れました。ログイン画面に戻ります。");
-    window.location.href = "?page=Login"; 
+    window.location.href = "login"; 
+} else {
+    sessionStorage.setItem('employeeNumber', empNo);
 }
 
 let userRole = 'viewer';
@@ -242,7 +241,6 @@ function openModal(rJson) {
     const r = typeof rJson === 'string' ? JSON.parse(rJson) : rJson;
     currentStore = r.store;
 
-    // 日付（例: "2026-05-22"）から曜日を計算する処理
     let dayOfWeekStr = "-";
     if (r.date && r.date !== "-") {
         const parts = r.date.split('-');
@@ -290,11 +288,11 @@ function loadDailyData() {
     const statusLabel = document.getElementById('statusLabel');
     if (statusLabel) statusLabel.innerText = "読み込み中...";
 
-    // Cloudflare API への非同期リクエストに書き換え
-    fetch('/api/getDailyListData', {
+    // GAS_API_URL を使用し、action を追加してリクエスト
+    fetch(GAS_API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ store, month })
+        body: JSON.stringify({ action: 'getDailyListData', store, month })
     })
     .then(res => {
         if (!res.ok) throw new Error('Network response was not ok');
@@ -323,14 +321,11 @@ function loadDailyData() {
                 <td>¥${Number(r.sales || 0).toLocaleString()}</td>
                 <td>${(() => {
                     if (!r.sales) return '-';
-                    // 営業利益の計算
                     const profit = Math.floor(Number(r.sales) - Number(r.purchase || 0) - Number(r.misc || r.miscellaneous || 0));
                     
                     if (profit < 0) {
-                      // マイナスの場合は絶対値（Math.abs）にして「-¥1,234」の形で赤文字（太字）にする
                       return `<span style="color: #dc3545; font-weight: bold;">-¥${Math.abs(profit).toLocaleString()}</span>`;
                     } else {
-                      // プラスの場合は通常の黒文字
                       return `¥${profit.toLocaleString()}`;
                     }
                   })()}</td>
@@ -348,7 +343,6 @@ function loadDailyData() {
 }
 
 function saveData() {
-    // 保存ボタンを「保存中...」に変更して連打・誤操作を防止
     const btn = document.getElementById('btnSave');
     btn.innerText = "保存中...";
     btn.disabled = true;
@@ -371,11 +365,11 @@ function saveData() {
         reservation: document.getElementById('modalReservation').value
     };
 
-    // Cloudflare API への保存リクエストに書き換え
-    fetch('/api/updateDailyData', {
+    // GAS_API_URL を使用し、action を追加してリクエスト
+    fetch(GAS_API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data, empNo: sessionStorage.getItem('employeeNumber') })
+        body: JSON.stringify({ action: 'updateDailyData', data, empNo: sessionStorage.getItem('employeeNumber') })
     })
     .then(res => {
         if (!res.ok) throw new Error('Save failed');
@@ -384,7 +378,6 @@ function saveData() {
     .then(() => {
         alert('保存しました'); 
         
-        // ボタンの状態を元に戻す
         btn.innerText = "保存する";
         btn.disabled = false;
         btn.style.opacity = "1";
@@ -396,7 +389,6 @@ function saveData() {
         console.error("保存エラー:", err);
         alert("エラーが発生しました");
         
-        // エラー時もボタンの状態を元に戻す
         btn.innerText = "保存する";
         btn.disabled = false;
         btn.style.opacity = "1";
@@ -413,53 +405,52 @@ function calcSales() {
 }
 
 window.onload = () => {
-    // 今月を初期値としてセット ---
+    // 今月を初期値としてセット
     const now = new Date();
     const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0'); // 1〜9月を01〜09に変換
+    const month = String(now.getMonth() + 1).padStart(2, '0');
     document.getElementById('monthPicker').value = `${year}-${month}`;
 
-    const empNo = sessionStorage.getItem('employeeNumber');
+    // FABメニューのすべてのリンクに empNo パラメータを自動付与
+    document.querySelectorAll('.simple-fab-link').forEach(link => {
+        const url = new URL(link.href, window.location.origin);
+        url.searchParams.set('empNo', empNo);
+        link.href = url.toString();
+    });
 
-    // ユーザー権限チェックAPI呼び出し
+    // ユーザー権限チェックAPI呼び出し (GAS_API_URL)
     fetch(GAS_API_URL, {
-    method: 'POST',
-    body: JSON.stringify({ action: 'checkUserPermission', empNo }) // actionを追加
-})
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'checkUserPermission', empNo })
+    })
     .then(res => res.json())
     .then(r => { userRole = r; })
     .catch(err => console.error("Permission check error:", err));
     
-    // アクセス可能店舗一覧API呼び出し
-    fetch('/api/getAccessibleStoreList', {
+    // アクセス可能店舗一覧API呼び出し (GAS_API_URL)
+    fetch(GAS_API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ empNo })
+        body: JSON.stringify({ action: 'getAccessibleStoreList', empNo })
     })
     .then(res => res.json())
     .then(stores => {
         const selector = document.getElementById('storeSelector');
         selector.innerHTML = stores.map(s => `<option value="${s}">${s}</option>`).join('');
-        
-        // 月がセットされた状態でデータを読み込む
         loadDailyData(); 
     })
     .catch(err => console.error("Get stores error:", err));
 };
 
-    function goBackToDashboard() {
-        window.location.href = "index.html";
-    }
+function goBackToDashboard() {
+    window.location.href = `index.html?empNo=${empNo}`;
+}
 
-// メニューの開閉を切り替えるシンプルロジック（重複を削除し、正しい実装に一本化）
 function toggleFabMenu() {
     const options = document.getElementById('fabMenuOptions');
     const btn = document.getElementById('fabToggleBtn');
-    
-    // openクラスをつけ外ししてメニューを出し入れ
     options.classList.toggle('open');
-    
-    // ボタンの文字を ☰ と ✕ で切り替える
     btn.textContent = options.classList.contains('open') ? '✕' : '☰';
 }
 </script>
