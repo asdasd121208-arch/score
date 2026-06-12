@@ -381,17 +381,29 @@
             tbody.innerHTML = '';
             scorecard.forEach(item => {
               const tr = document.createElement('tr');
-              const isNoData = item.sales === "未入力" || !item.sales;
               
+              // ❗ 各項目ごとに、文字列の "NaN" や計算エラーを厳格にチェックする関数
+              const checkNoData = (val) => {
+                return !val || val === "未入力" || val === "NaN" || isNaN(Number(val));
+              };
+
+              // 各項目がエラー・未入力か判定
+              const isSalesNoData = checkNoData(item.sales);
+              const isProfitNoData = checkNoData(item.profit);
+              const isCustomersNoData = checkNoData(item.customers);
+              const isUnitPriceNoData = checkNoData(item.unitPrice);
+              
+              // 曜日の英語表記を日本語に置換
               let d = item.date.replace(/\(Sun\)/g, '(日)').replace(/\(Mon\)/g, '(月)').replace(/\(Tue\)/g, '(火)')
-                                 .replace(/\(Wed\)/g, '(水)').replace(/\(Thu\)/g, '(木)').replace(/\(Fri\)/g, '(金)').replace(/\(Sat\)/g, '(土)');
+                               .replace(/\(Wed\)/g, '(水)').replace(/\(Thu\)/g, '(木)').replace(/\(Fri\)/g, '(金)').replace(/\(Sat\)/g, '(土)');
               
+              // ❗ 各項目が個別で「未入力」判定ならグレーの文字で「未入力」と出す
               tr.innerHTML = `
                 <td>${d}</td>
-                <td data-label="売上" style="${isNoData ? 'color:#94a3b8;' : ''}">${isNoData ? '未入力' : '¥' + Number(item.sales || 0).toLocaleString()}</td>
-                <td data-label="営業利益" style="${isNoData ? 'color:#94a3b8;' : ''}">${isNoData ? '未入力' : '¥' + Number(item.profit || 0).toLocaleString()}</td>
-                <td data-label="客数" style="${isNoData ? 'color:#94a3b8;' : ''}">${isNoData ? '未入力' : Number(item.customers || 0).toLocaleString() + '人'}</td>
-                <td data-label="客単価" style="${isNoData ? 'color:#94a3b8;' : ''}">${isNoData ? '未入力' : '¥' + Number(item.unitPrice || 0).toLocaleString()}</td>
+                <td data-label="売上" style="${isSalesNoData ? 'color:#94a3b8;' : ''}">${isSalesNoData ? '未入力' : '¥' + Number(item.sales).toLocaleString()}</td>
+                <td data-label="営業利益" style="${isProfitNoData ? 'color:#94a3b8;' : ''}">${isProfitNoData ? '未入力' : '¥' + Number(item.profit).toLocaleString()}</td>
+                <td data-label="客数" style="${isCustomersNoData ? 'color:#94a3b8;' : ''}">${isCustomersNoData ? '未入力' : Number(item.customers).toLocaleString() + '人'}</td>
+                <td data-label="客単価" style="${isUnitPriceNoData ? 'color:#94a3b8;' : ''}">${isUnitPriceNoData ? '未入力' : '¥' + Number(item.unitPrice).toLocaleString()}</td>
               `;
               tbody.appendChild(tr);
             });
