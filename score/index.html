@@ -373,19 +373,15 @@
         document.getElementById('mProfit').innerText = 'エラー';
       });
 
-      // 3. グラフとデイリーリスト取得（GASの受け口 getRecentDailySales に一致）
+      // 3. グラフとデイリーリスト取得
       fetch(GAS_API_URL, {
         method: "POST",
         mode: "cors",
         headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify({ 
-          action: "getRecentDailySales", // 👈 正しいアクション名に戻しました
-          storeName: storeName          // 👈 正しいキー名に戻しました
-        })
+        body: JSON.stringify({ action: "getRecentDailySales", storeName: storeName })
       })
       .then(res => res.json())
       .then(res => {
-        // 【安全対策】レスポンス全体が null や空だった場合でもクラッシュさせない
         const r = res || {};
         const labels = r.labels || [];
         const salesData = r.sales || [];
@@ -405,32 +401,34 @@
             scorecard.forEach(item => {
               const tr = document.createElement('tr');
               
-              // 売上や客数が「0」の時、正常な値として通す（未入力化の防止）
-              const checkNoData = (val) => {
-                if (val === 0 || val === "0") return false;
-                return !val || val === "未入力" || val === "NaN" || isNaN(Number(val));
-              };
-
-              // 各項目がエラー・未入力か判定
-              const isSalesNoData = checkNoData(item.sales);
-              const isProfitNoData = checkNoData(item.profit);
-              const isCustomersNoData = checkNoData(item.customers);
-              const isUnitPriceNoData = checkNoData(item.unitPrice);
+              // ❗【修正】GAS側で既に "未入力" という文字列、またはカンマ付き文字列が作られているため、
+              // 単純に文字が存在するか、"未入力"になっていないかだけで判定をします。
+              const isSalesNoData = !item.sales || item.sales === "未入力";
+              const isProfitNoData = !item.profit || item.profit === "未入力";
+              const isCustomersNoData = !item.customers || item.customers === "未入力";
+              const isUnitPriceNoData = !item.unitPrice || item.unitPrice === "未入力";
               
-              // 日付が空行等で null/undefined だった場合にreplaceで画面がフリーズするのを防ぐ
+              // 日付の空判定と安全な曜日の日本語置換
               let rawDate = item.date || '日付不明';
               let d = typeof rawDate === 'string'
                 ? rawDate.replace(/\(Sun\)/g, '(日)').replace(/\(Mon\)/g, '(月)').replace(/\(Tue\)/g, '(火)')
                          .replace(/\(Wed\)/g, '(水)').replace(/\(Thu\)/g, '(木)').replace(/\(Fri\)/g, '(金)').replace(/\(Sat\)/g, '(土)')
                 : '日付不明';
               
-              // 各項目が個別で「未入力」判定ならグレーの文字で「未入力」と出す
+              // 客数（customers）だけはGAS側で生データ（カンマなし）で届くため、HTML側でカンマを適用します
+              let displayCustomers = '未入力';
+              if (!isCustomersNoData) {
+                displayCustomers = Number(item.customers).toLocaleString() + '人';
+              }
+
+              // ❗【修正】数値変換（Number）や再度のtoLocaleStringを廃止し、
+              // GASから届いた綺麗なカンマ付き文字列をそのまま表示するようにしました。
               tr.innerHTML = `
                 <td>${d}</td>
-                <td data-label="売上" style="${isSalesNoData ? 'color:#94a3b8;' : ''}">${isSalesNoData ? '未入力' : '¥' + Number(item.sales).toLocaleString()}</td>
-                <td data-label="営業利益" style="${isProfitNoData ? 'color:#94a3b8;' : ''}">${isProfitNoData ? '未入力' : '¥' + Number(item.profit).toLocaleString()}</td>
-                <td data-label="客数" style="${isCustomersNoData ? 'color:#94a3b8;' : ''}">${isCustomersNoData ? '未入力' : Number(item.customers).toLocaleString() + '人'}</td>
-                <td data-label="客単価" style="${isUnitPriceNoData ? 'color:#94a3b8;' : ''}">${isUnitPriceNoData ? '未入力' : '¥' + Number(item.unitPrice).toLocaleString()}</td>
+                <td data-label="売上" style="${isSalesNoData ? 'color:#94a3b8;' : ''}">${isSalesNoData ? '未入力' : '¥' + item.sales}</td>
+                <td data-label="営業利益" style="${isProfitNoData ? 'color:#94a3b8;' : ''}">${isProfitNoData ? '未入力' : '¥' + item.profit}</td>
+                <td data-label="客数" style="${isCustomersNoData ? 'color:#94a3b8;' : ''}">${displayCustomers}</td>
+                <td data-label="客単価" style="${isUnitPriceNoData ? 'color:#94a3b8;' : ''}">${isUnitPriceNoData ? '未入力' : '¥' + item.unitPrice}</td>
               `;
               tbody.appendChild(tr);
             });
