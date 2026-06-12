@@ -129,29 +129,32 @@
       opacity: 0.95;
     }
     /* =========================================
-       ✨ ロゴのきらっと光るアニメーション（超軽量）
+    ロゴアニメーション
     ========================================= */
-    .logo-area svg path, .logo-area svg rect {
-      animation: logoShine 5s infinite ease-in-out;
+    /* 5番目（シアン）と6番目（オレンジ）のパーツのみにアニメーションを適用 */
+    .logo-area svg path:nth-child(5),
+    .logo-area svg path:nth-child(6) {
+      animation: loopGlow 2s infinite ease-in-out;
     }
 
-    /* 左から右へ光が流れるように、パーツごとに発光タイミングをミリ秒単位でズラします */
-    .logo-area svg path:nth-child(1) { animation-delay: 0.0s; }  /* S */
-    .logo-area svg path:nth-child(2) { animation-delay: 0.1s; }  /* C */
-    .logo-area svg path:nth-child(3) { animation-delay: 0.2s; }  /* O (黒パーツ1) */
-    .logo-area svg path:nth-child(4) { animation-delay: 0.2s; }  /* O (黒パーツ2) */
-    .logo-area svg path:nth-child(5) { animation-delay: 0.25s; } /* O (シアン) */
-    .logo-area svg path:nth-child(6) { animation-delay: 0.25s; } /* O (オレンジ) */
-    .logo-area svg path:nth-child(7) { animation-delay: 0.35s; } /* R */
-    .logo-area svg rect              { animation-delay: 0.4s; }  /* 中央の縦棒 */
-    .logo-area svg path:nth-child(8) { animation-delay: 0.45s; } /* E */
+    /* シアン（5番目）はディレイなしでスタート */
+    .logo-area svg path:nth-child(5) {
+      animation-delay: 0s;
+    }
 
-    @keyframes logoShine {
-      0%, 16%, 100% {
-        filter: brightness(1); /* 通常の明るさ */
+    /* オレンジ（6番目）はアニメーション周期（2秒）のちょうど半分（1秒）をズラします */
+    /* これにより、完璧に「交互」に明滅するようになります */
+    .logo-area svg path:nth-child(6) {
+      animation-delay: 1s;
+    }
+
+    /* なめらかに明滅（じわっと光る）させるキーフレーム */
+    @keyframes loopGlow {
+      0%, 100% {
+        filter: brightness(1);   /* 通常の明るさ */
       }
-      8% {
-        filter: brightness(1.6); /* 一瞬だけ1.6倍の明るさに輝かせる */
+      50% {
+        filter: brightness(1.8); /* 最大で1.8倍の明るさに鮮やかに輝く */
       }
     }
   </style>
