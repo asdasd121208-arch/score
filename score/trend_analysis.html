@@ -84,22 +84,26 @@
     .simple-fab-link { display: block; background-color: #ffffff; color: #333333 !important; text-decoration: none !important; padding: 10px 20px; border-radius: 22px; font-size: 13px; font-weight: bold; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2); border: 1px solid #e0e0e0; white-space: nowrap; text-align: center; transition: background-color 0.2s; -webkit-tap-highlight-color: transparent; }
     .simple-fab-link:active { background-color: #f1f3f5; }
 
-    /* =========================================
-       📅 曜日別データグリッド（PC・タブレット用）
+   /* =========================================
+       📅 曜日別データグリッド（PC用：横並び7列・中央等間隔）
     ========================================= */
     .day-data-grid {
       display: grid;
-      grid-template-columns: repeat(7, 1fr); /* PCでは横に7並び */
-      gap: 8px;
+      grid-template-columns: repeat(7, 1fr); /* PCでは横に7個きれいに並べる */
+      gap: 10px;
       background: #f8fafc;
       border-radius: 8px;
       padding: 12px;
+      margin-top: 12px;
     }
     .day-data-card {
       background: white;
       border: 1px solid #e2e8f0;
       border-radius: 8px;
-      padding: 10px 4px;
+      padding: 12px 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center; /* ❗中身をすべて中央揃えにする */
       text-align: center;
       box-shadow: 0 2px 4px rgba(0,0,0,0.02);
     }
@@ -109,69 +113,77 @@
       color: #475569;
       background: #f1f5f9;
       border-radius: 4px;
-      padding: 2px 0;
-      margin-bottom: 8px;
+      padding: 3px 0;
+      width: 100%; /* 横幅いっぱいに広げてバッジ風に */
+      margin-bottom: 10px;
     }
     .day-val-group {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 6px;
+      width: 100%;
     }
     .day-val {
       display: flex;
       flex-direction: column;
-      align-items: center;
+      align-items: center; /* ❗売上や客単価の文字も中央揃え */
     }
     .day-val.sales { color: #2563eb; }
     .day-val.price { color: #10b981; }
     .val-title {
-      font-size: 9px;
+      font-size: 10px;
       color: #94a3b8;
       font-weight: normal;
-      margin-bottom: 1px;
+      margin-bottom: 2px;
     }
     .val-num {
       font-size: 12px;
       font-weight: bold;
     }
-    /* 📱 曜日別グリッドのスマホ専用レイアウト（縦展開） */
+
+    /* =========================================
+       📱 モバイル対応調整（幅600px以下のスマホ用）
+    ========================================= */
+    @media (max-width: 600px) {
+      /* 既存のスマホ用スタイル（.headerや.cardなど）がここにあればそのままでOK */
+
+      /* 曜日別グリッドのスマホ専用レイアウト（縦展開） */
       .day-data-grid {
-        grid-template-columns: 1fr; /* 縦1列にチェンジ */
+        grid-template-columns: 1fr; /* スマホでは縦1列にチェンジ */
         gap: 6px;
         padding: 8px;
       }
       .day-data-card {
-        display: flex;
+        flex-direction: row; /* 横長の行スタイルにする */
+        justify-content: space-between; /* 曜日と数値を両端に分ける */
         align-items: center;
-        justify-content: space-between;
         padding: 10px 16px;
       }
       .day-label {
         margin-bottom: 0;
         padding: 4px 0;
         font-size: 14px;
-        width: 32px;
-        text-align: center;
+        width: 36px;
       }
       .day-val-group {
         flex-direction: row; /* 売上と単価を横並びに */
-        gap: 20px;
+        gap: 16px;
         justify-content: flex-end;
         flex: 1;
       }
       .day-val {
         flex-direction: row; /* 「見出し：数値」を横並びに */
         align-items: center;
-        gap: 6px;
+        gap: 4px;
       }
       .val-title {
         font-size: 11px;
-        min-width: 44px;
-        text-align: right;
+        min-width: auto;
       }
       .val-num {
         font-size: 13px;
       }
+    }
   </style>
 </head>
 <body>
