@@ -414,17 +414,24 @@
       }
 
       // 曜日別テーブルの更新
-      const tableBody = document.getElementById('dayOfWeekTableBody');
-      tableBody.innerHTML = `
-        <tr style="border-bottom:1px dashed #e2e8f0;">
-          <td style="font-weight:bold; color:#2563eb; padding:8px 0;">売上平均</td>
-          ${wSalesAvg.map(v => `<td>¥${v.toLocaleString()}</td>`).join('')}
-        </tr>
-        <tr>
-          <td style="font-weight:bold; color:#10b981; padding:8px 0;">客単価</td>
-          ${wUnitPrice.map(v => `<td>¥${v.toLocaleString()}</td>`).join('')}
-        </tr>
-      `;
+      // 曜日別データグリッドの更新
+      const days = ['日', '月', '火', '水', '木', '金', '土'];
+      const gridContainer = document.getElementById('dayOfWeekGrid');
+      gridContainer.innerHTML = days.map((day, i) => `
+        <div class="day-data-card">
+          <div class="day-label">${day}</div>
+          <div class="day-val-group">
+            <div class="day-val sales">
+              <span class="val-title">売上平均</span>
+              <span class="val-num">¥${wSalesAvg[i].toLocaleString()}</span>
+            </div>
+            <div class="day-val price">
+              <span class="val-title">客単価</span>
+              <span class="val-num">¥${wUnitPrice[i].toLocaleString()}</span>
+            </div>
+          </div>
+        </div>
+      `).join('');
 
       const formatToM = (val) => {
         return (val / 1000000).toFixed(1) + 'M';
