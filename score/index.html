@@ -331,7 +331,7 @@
       const storeName = document.getElementById('storeSelector').value;
       if(!storeName) return;
 
-      // 【安全対策】通信開始前に古い表示を一斉リセット（ユーザーの誤認を防ぐ）
+      // 【安全対策】通信開始前に古い表示を一斉リセット
       document.getElementById('mSales').innerText = '¥--';
       document.getElementById('mVariable').innerText = '¥--';
       document.getElementById('mFixed').innerText = '¥--';
@@ -345,7 +345,7 @@
       const now = new Date();
       const targetMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
 
-      // 2. 月間サマリー取得を fetch に書き換え
+      // 2. 月間サマリー取得
       fetch(GAS_API_URL, {
         method: "POST",
         mode: "cors",
@@ -354,7 +354,6 @@
       })
       .then(res => res.json())
       .then(stats => {
-        // データがnullかもしれないので守る
         const s = stats || {}; 
         
         document.getElementById('mSales').innerText = `¥${Number(s.sales || 0).toLocaleString()}`;
@@ -374,12 +373,15 @@
         document.getElementById('mProfit').innerText = 'エラー';
       });
 
-      // 3. グラフとデイリーリスト取得を fetch に書き換え
+      // 3. グラフとデイリーリスト取得（GASの受け口 getRecentDailySales に一致）
       fetch(GAS_API_URL, {
         method: "POST",
         mode: "cors",
         headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify({ action: "getRecentDailySales", storeName: storeName })
+        body: JSON.stringify({ 
+          action: "getRecentDailySales", // 👈 正しいアクション名に戻しました
+          storeName: storeName          // 👈 正しいキー名に戻しました
+        })
       })
       .then(res => res.json())
       .then(res => {
@@ -403,8 +405,7 @@
             scorecard.forEach(item => {
               const tr = document.createElement('tr');
               
-              // ❗ 各項目ごとに、文字列の "NaN" や計算エラーを厳格にチェックする関数
-              // 【安全対策】売上や客数が「0」の時、正常な値として通す（未入力化の防止）
+              // 売上や客数が「0」の時、正常な値として通す（未入力化の防止）
               const checkNoData = (val) => {
                 if (val === 0 || val === "0") return false;
                 return !val || val === "未入力" || val === "NaN" || isNaN(Number(val));
@@ -416,14 +417,14 @@
               const isCustomersNoData = checkNoData(item.customers);
               const isUnitPriceNoData = checkNoData(item.unitPrice);
               
-              // 【安全対策】日付が空行等で null/undefined だった場合にreplaceで画面がフリーズするのを防ぐ
+              // 日付が空行等で null/undefined だった場合にreplaceで画面がフリーズするのを防ぐ
               let rawDate = item.date || '日付不明';
               let d = typeof rawDate === 'string'
                 ? rawDate.replace(/\(Sun\)/g, '(日)').replace(/\(Mon\)/g, '(月)').replace(/\(Tue\)/g, '(火)')
                          .replace(/\(Wed\)/g, '(水)').replace(/\(Thu\)/g, '(木)').replace(/\(Fri\)/g, '(金)').replace(/\(Sat\)/g, '(土)')
                 : '日付不明';
               
-              // ❗ 各項目が個別で「未入力」判定ならグレーの文字で「未入力」と出す
+              // 各項目が個別で「未入力」判定ならグレーの文字で「未入力」と出す
               tr.innerHTML = `
                 <td>${d}</td>
                 <td data-label="売上" style="${isSalesNoData ? 'color:#94a3b8;' : ''}">${isSalesNoData ? '未入力' : '¥' + Number(item.sales).toLocaleString()}</td>
@@ -498,7 +499,7 @@
       
       alert("CSVを生成中です...");
       
-      // 4. CSVダウンロードを fetch に書き換え
+      // 4. CSVダウンロード
       fetch(GAS_API_URL, {
         method: "POST",
         mode: "cors",
@@ -507,7 +508,6 @@
       })
       .then(res => res.json())
       .then(csvContent => {
-        // 【安全対策】Excelでの日本語文字化けを完全に防ぐためのBOMを追加
         const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
         const blob = new Blob([bom, csvContent], { type: 'text/csv;charset=utf-8;' });
         const url = URL.createObjectURL(blob);
