@@ -131,30 +131,29 @@
     /* =========================================
     ロゴアニメーション
     ========================================= */
-    /* 5番目（シアン）と6番目（オレンジ）のパーツのみにアニメーションを適用 */
+/* シアン（5番目）とオレンジ（6番目）に4秒周期のアニメーションを設定 */
     .logo-area svg path:nth-child(5),
     .logo-area svg path:nth-child(6) {
-      animation: loopGlow 2s infinite ease-in-out;
+      animation: loopGlow 4s infinite ease-in-out;
     }
 
-    /* シアン（5番目）はディレイなしでスタート */
+    /* シアンは 0秒目 からスタート（最初の2秒で光って、後半2秒はお休み） */
     .logo-area svg path:nth-child(5) {
       animation-delay: 0s;
     }
 
-    /* オレンジ（6番目）はアニメーション周期（2秒）のちょうど半分（1秒）をズラします */
-    /* これにより、完璧に「交互」に明滅するようになります */
+    /* オレンジは 2秒遅らせて スタート（最初の2秒はお休み、後半2秒で光る） */
     .logo-area svg path:nth-child(6) {
-      animation-delay: 1s;
+      animation-delay: 2s;
     }
 
-    /* なめらかに明滅（じわっと光る）させるキーフレーム */
+    /* 4秒のサイクルのうち、動く時間をきれいに半分ずつに分ける設定 */
     @keyframes loopGlow {
-      0%, 100% {
-        filter: brightness(1);   /* 通常の明るさ */
+      0%, 50%, 100% {
+        filter: brightness(1);   /* 通常の明るさ（お休み状態） */
       }
-      50% {
-        filter: brightness(1.8); /* 最大で1.8倍の明るさに鮮やかに輝く */
+      25% {
+        filter: brightness(1.8); /* ピーク時に1.8倍の明るさに鮮やかに輝く */
       }
     }
   </style>
