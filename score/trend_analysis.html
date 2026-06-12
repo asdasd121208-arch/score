@@ -83,6 +83,95 @@
     /* 文字だけのカプセル型リンクボタン */
     .simple-fab-link { display: block; background-color: #ffffff; color: #333333 !important; text-decoration: none !important; padding: 10px 20px; border-radius: 22px; font-size: 13px; font-weight: bold; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2); border: 1px solid #e0e0e0; white-space: nowrap; text-align: center; transition: background-color 0.2s; -webkit-tap-highlight-color: transparent; }
     .simple-fab-link:active { background-color: #f1f3f5; }
+
+    /* =========================================
+       📅 曜日別データグリッド（PC・タブレット用）
+    ========================================= */
+    .day-data-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr); /* PCでは横に7並び */
+      gap: 8px;
+      background: #f8fafc;
+      border-radius: 8px;
+      padding: 12px;
+    }
+    .day-data-card {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px 4px;
+      text-align: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    .day-label {
+      font-size: 13px;
+      font-weight: bold;
+      color: #475569;
+      background: #f1f5f9;
+      border-radius: 4px;
+      padding: 2px 0;
+      margin-bottom: 8px;
+    }
+    .day-val-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .day-val {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .day-val.sales { color: #2563eb; }
+    .day-val.price { color: #10b981; }
+    .val-title {
+      font-size: 9px;
+      color: #94a3b8;
+      font-weight: normal;
+      margin-bottom: 1px;
+    }
+    .val-num {
+      font-size: 12px;
+      font-weight: bold;
+    }
+    /* 📱 曜日別グリッドのスマホ専用レイアウト（縦展開） */
+      .day-data-grid {
+        grid-template-columns: 1fr; /* 縦1列にチェンジ */
+        gap: 6px;
+        padding: 8px;
+      }
+      .day-data-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 16px;
+      }
+      .day-label {
+        margin-bottom: 0;
+        padding: 4px 0;
+        font-size: 14px;
+        width: 32px;
+        text-align: center;
+      }
+      .day-val-group {
+        flex-direction: row; /* 売上と単価を横並びに */
+        gap: 20px;
+        justify-content: flex-end;
+        flex: 1;
+      }
+      .day-val {
+        flex-direction: row; /* 「見出し：数値」を横並びに */
+        align-items: center;
+        gap: 6px;
+      }
+      .val-title {
+        font-size: 11px;
+        min-width: 44px;
+        text-align: right;
+      }
+      .val-num {
+        font-size: 13px;
+      }
   </style>
 </head>
 <body>
@@ -171,19 +260,7 @@
       <div class="chart-container">
         <canvas id="dayOfWeekChart"></canvas>
       </div>
-      <div class="table-responsive" style="overflow-x:auto; background:#f8fafc; border-radius:8px; padding:8px;">
-        <table style="width:100%; border-collapse:collapse; font-size:11px; text-align:center;">
-          <thead>
-            <tr style="color:#64748b; border-bottom:1px solid #e2e8f0;">
-              <th style="background:none; padding:6px 2px;">項目</th><th>日</th><th>月</th><th>火</th><th>水</th><th>木</th><th>金</th><th>土</th>
-            </tr>
-          </thead>
-          <tbody id="dayOfWeekTableBody">
-            <tr style="border-bottom:1px dashed #e2e8f0;"><td style="font-weight:bold; color:#2563eb;">売上平均</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
-            <tr><td style="font-weight:bold; color:#10b981;">客単価</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
-          </tbody>
-        </table>
-      </div>
+     <div class="day-data-grid" id="dayOfWeekGrid"></div>
     </div>
   </div>
 
