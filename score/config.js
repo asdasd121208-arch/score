@@ -1,2 +1,2 @@
 // config.js
-const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxT8iYkXfJlq2r2W3r1Qj3SmAXPHXOOayZ0EH2ygbyHWrykJj2o-7mfLZc3KOkeOK6WaQ/exec";
+const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzGvbL_B2YYW5V3Z5xn8HMqmzpm0zvHk8amB9SRYRJoLVQXpu0AoEIFz8lh8-CxI5IHWA/exec";
