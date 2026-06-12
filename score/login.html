@@ -153,12 +153,12 @@
 
     <div class="form-group">
       <label>社員番号</label>
-      <input type="text" id="employeeId" class="form-input" placeholder="社員番号を入力">
+      <input type="text" id="employeeId" class="form-input" placeholder="社員番号を入力" inputmode="numeric" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
     </div>
 
     <div class="form-group">
       <label>パスワード</label>
-      <input type="password" id="password" class="form-input" placeholder="パスワードを入力">
+      <input type="password" id="password" class="form-input" placeholder="パスワードを入力" inputmode="numeric" pattern="[0-9]*" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
     </div>
 
     <button type="button" class="login-btn" onclick="login()">ログイン</button>
@@ -167,8 +167,9 @@
   <script src="config.js?V=2"></script>
   <script>
   function login() {
-    const empNum = document.getElementById('employeeId')?.value;
-    const pass = document.getElementById('password')?.value;
+    // 💡 .trim() をつけて前後の余分なスペースを自動カットする親切設計に微修正
+    const empNum = document.getElementById('employeeId')?.value.trim();
+    const pass = document.getElementById('password')?.value.trim();
     
     if (!empNum || !pass) {
       alert('社員番号とパスワードを入力してください');
@@ -180,11 +181,10 @@
       method: "POST",
       mode: "cors",
       headers: {
-        // GASでCORSエラー（通信拒否）を回避するための標準的な設定
         "Content-Type": "text/plain" 
       },
       body: JSON.stringify({
-        action: 'loginUser', // GAS側のdoPostで識別するためのアクション名
+        action: 'loginUser', 
         id: empNum,
         pass: pass
       })
@@ -197,12 +197,10 @@
     })
     .then(result => {
       if (result && result.success) {
-        // セッションストレージへの保存（役割は以前のまま維持）
         sessionStorage.setItem('employeeNumber', empNum);
         sessionStorage.setItem('userName', result.name || 'スタッフ');
         sessionStorage.setItem('userRole', result.role || '');
         
-        // Cloudflare上のメイン画面（index.html）へ遷移
         window.location.href = "index.html";
       } else {
         alert('社員番号またはパスワードが間違っています');
