@@ -148,45 +148,46 @@
         const now = new Date();
         const year = now.getFullYear();
         const month = String(now.getMonth() + 1).padStart(2, '0');
-        document.getElementById('monthPicker').value = `${year}-${month}`;
+        const currentMonth = `${year}-${month}`;
+        document.getElementById('monthPicker').value = currentMonth;
 
         try {
-            // ユーザー権限チェック
-            userRole = await callGasApi("checkUserPermission", { empNo: empNo });
+            // 画面を開いた瞬間に「読み込み中...」にする
+            document.getElementById('statusLabel').innerText = "読み込み中...";
             
-            // アクセス可能な店舗リスト取得
-            const stores = await callGasApi("getAccessibleStoreList", { empNo: empNo });
+            // 【高速化のキモ】3回あった通信を、1回の一撃パック呼び出しに統合！
+            const initData = await callGasApi("getInitialDashboardData", { 
+                empNo: empNo, 
+                targetMonth: currentMonth 
+            });
+            
+            // 戻ってきたパックからデータをそれぞれの変数に分配
+            userRole = initData.role;
+            const stores = initData.stores;
+            
             const selector = document.getElementById('storeSelector');
-            selector.innerHTML = stores.map(s => `<option value="${s}">${s}</option>`).join('');
             
-            // 店舗リストが存在すればデータを初期読み込み
-            if (stores.length > 0) {
-                loadDashboardData(); 
+            if (stores && stores.length > 0) {
+                // 店舗プルダウンの生成
+                selector.innerHTML = stores.map(s => `<option value="${s}">${s}</option>`).join('');
+                
+                // すでに裏で同時に計算して持ってきてもらった月間データをそのまま即描画！
+                if (initData.monthlyData) {
+                    document.getElementById('statusLabel').innerText = "表示中：" + currentMonth.replace("-", "年") + "月";
+                    renderDashboard(initData.monthlyData);
+                } else {
+                    document.getElementById('statusLabel').innerText = "データがありません";
+                }
             } else {
+                selector.innerHTML = '<option value="">店舗権限なし</option>';
                 document.getElementById('statusLabel').innerText = "アクセス可能な店舗がありません";
             }
         } catch (error) {
+            console.error(error);
             alert("初期データの取得に失敗しました。");
-        }
-    };
-
-    async function loadDashboardData() {
-        const store = document.getElementById('storeSelector').value;
-        const month = document.getElementById('monthPicker').value;
-        
-        if (!store) return;
-        
-        document.getElementById('statusLabel').innerText = "読み込み中...";
-        
-        try {
-            // GAS側の getMonthlyDetailData を呼び出し
-            const res = await callGasApi("getMonthlyDetailData", { storeName: store, targetMonth: month });
-            document.getElementById('statusLabel').innerText = "表示中：" + month.replace("-", "年") + "月";
-            renderDashboard(res);
-        } catch (error) {
             document.getElementById('statusLabel').innerText = "データの読み込みに失敗しました";
         }
-    }
+    };
 
     function renderDashboard(res) {
         // 1. 収支サマリー描画
