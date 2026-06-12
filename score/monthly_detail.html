@@ -189,6 +189,24 @@
         }
     };
 
+    async function loadDashboardData() {
+        const store = document.getElementById('storeSelector').value;
+        const month = document.getElementById('monthPicker').value;
+        
+        if (!store) return;
+        
+        document.getElementById('statusLabel').innerText = "読み込み中...";
+        
+        try {
+            // 検索ボタンが押されたときは、純粋に対象店舗・対象月のデータだけをGASから取得する
+            const res = await callGasApi("getMonthlyDetailData", { storeName: store, targetMonth: month });
+            document.getElementById('statusLabel').innerText = "表示中：" + month.replace("-", "年") + "月";
+            renderDashboard(res);
+        } catch (error) {
+            document.getElementById('statusLabel').innerText = "データの読み込みに失敗しました";
+        }
+    }
+
     function renderDashboard(res) {
         // 1. 収支サマリー描画
         document.getElementById('financeKpi').innerHTML = `
