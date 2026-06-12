@@ -135,6 +135,7 @@
     .logo-area svg path:nth-child(5),
     .logo-area svg path:nth-child(6) {
       animation: loopGlow 4s infinite ease-in-out;
+      will-change: opacity; /* スマホでの動作をさらに滑らかにするおまじない */
     }
 
     /* シアンは 0秒目 からスタート（最初の2秒で光って、後半2秒はお休み） */
@@ -147,13 +148,13 @@
       animation-delay: 2s;
     }
 
-    /* 4秒のサイクルのうち、動く時間をきれいに半分ずつに分ける設定 */
+    /* iPhoneでも確実に動く、不透明度（お休み 30% ➔ 発光 100%）のサイクル */
     @keyframes loopGlow {
       0%, 50%, 100% {
-        filter: brightness(1);   /* 通常の明るさ（お休み状態） */
+        opacity: 0.3;   /* 少し色を薄くして、影に隠れている状態（お休み） */
       }
       25% {
-        filter: brightness(1.8); /* ピーク時に1.8倍の明るさに鮮やかに輝く */
+        opacity: 1;     /* 本来の鮮やかなカラーでクッキリ浮き出る（発光） */
       }
     }
   </style>
